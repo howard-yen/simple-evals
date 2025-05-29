@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 
 from . import common
-from .browsecomp_eval import BrowseCompEval
+# from .browsecomp_eval import BrowseCompEval
 from .drop_eval import DropEval
 from .gpqa_eval import GPQAEval
 from .healthbench_eval import HealthBenchEval

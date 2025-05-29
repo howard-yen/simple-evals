@@ -115,7 +115,7 @@ class BrowseCompEval(Eval):
                     prompt_messages=actual_queried_prompt_messages,
                     next_message=dict(content=response_text, role="assistant"),
                     score=score,
-                    correct_answer=row["answer"],
+                    correct_answer=answer,
                     extracted_answer=response_text,
                 )
                 convo = actual_queried_prompt_messages + [dict(content=response_text, role="assistant")]
