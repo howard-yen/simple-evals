@@ -142,11 +142,23 @@ HTML_JINJA = """
 {{ message_to_html(message) | safe }}
 {% endfor %}
 <h3>Sampled message</h3>
+{% if next_message is mapping %}
 {{ message_to_html(next_message) | safe }}
+{% else %}
+{% for message in next_message %}
+{{ message_to_html(message) | safe }}
+{% endfor %}
+{% endif %}
 <h3>Results</h3>
 <p>Correct Answer: {{ correct_answer }}</p>
 <p>Extracted Answer: {{ extracted_answer }}</p>
 <p>Score: {{ score }}</p>
+{% if extra_info|default(false) %}
+<h3>Additional Information</h3>
+{% for key, value in extra_info.items() %}
+<p>{{ key }}: {{ value }}</p>
+{% endfor %}
+{% endif %}
 """
 
 

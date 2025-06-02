@@ -9,9 +9,9 @@ from .. import common
 CLAUDE_SYSTEM_MESSAGE_LMSYS = (
     "The assistant is Claude, created by Anthropic. The current date is "
     "{currentDateTime}. Claude's knowledge base was last updated in "
-    "August 2023 and it answers user questions about events before "
-    "August 2023 and after August 2023 the same way a highly informed "
-    "individual from August 2023 would if they were talking to someone "
+    "March 2025 and it answers user questions about events before "
+    "March 2025 and after March 2025 the same way a highly informed "
+    "individual from March 2025 would if they were talking to someone "
     "from {currentDateTime}. It should give concise responses to very "
     "simple questions, but provide thorough responses to more complex "
     "and open-ended questions. It is happy to help with writing, "
@@ -19,7 +19,7 @@ CLAUDE_SYSTEM_MESSAGE_LMSYS = (
     "tasks. It uses markdown for coding. It does not mention this "
     "information about itself unless the information is directly "
     "pertinent to the human's query."
-).format(currentDateTime="2024-04-01")
+).format(currentDateTime="2025-06-01")
 # reference: https://github.com/lm-sys/FastChat/blob/7899355ebe32117fdae83985cf8ee476d2f4243f/fastchat/conversation.py#L894
 
 
@@ -31,6 +31,7 @@ class ClaudeCompletionSampler(SamplerBase):
         system_message: str | None = None,
         temperature: float = 0.0,  # default in Anthropic example
         max_tokens: int = 4096,
+        thinking_budget: int | None = None,
     ):
         self.client = anthropic.Anthropic()
         self.api_key = os.environ.get("ANTHROPIC_API_KEY")  # please set your API_KEY
@@ -39,6 +40,15 @@ class ClaudeCompletionSampler(SamplerBase):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.image_format = "base64"
+        if thinking_budget:
+            self.thinking = {
+                "budget_tokens": thinking_budget,
+                "type": "enabled",
+            }
+            # cannot change the temperature when thinking is enabled
+            self.temperature = 1
+        else:
+            self.thinking = {"type": "disabled"}
 
     def _handle_image(
         self,
@@ -65,6 +75,7 @@ class ClaudeCompletionSampler(SamplerBase):
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         trial = 0
+        
         while True:
             try:
                 if not common.has_only_user_assistant_messages(message_list):
@@ -76,6 +87,7 @@ class ClaudeCompletionSampler(SamplerBase):
                         max_tokens=self.max_tokens,
                         temperature=self.temperature,
                         messages=message_list,
+                        thinking=self.thinking,
                     )
                     claude_input_messages: MessageList = [{"role": "system", "content": self.system_message}] + message_list
                 else:
@@ -84,12 +96,21 @@ class ClaudeCompletionSampler(SamplerBase):
                         max_tokens=self.max_tokens,
                         temperature=self.temperature,
                         messages=message_list,
+                        thinking=self.thinking,
                     )
                     claude_input_messages = message_list
-                response_text = response_message.content[0].text
+                
+                metadata = {}
+                if self.thinking["type"] == "enabled":
+                    metadata["thinking"] = response_message.content[0].thinking
+                if response_message.content[-1].type != "text":
+                    # hy: this can rarely happen, in which case we just retry
+                    print(response_message)
+                    continue
+                response_text = response_message.content[-1].text
                 return SamplerResponse(
                     response_text=response_text,
-                    response_metadata={},
+                    response_metadata=metadata,
                     actual_queried_message_list=claude_input_messages,
                 )
             except anthropic.RateLimitError as e:

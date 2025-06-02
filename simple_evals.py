@@ -1,28 +1,32 @@
 import argparse
 import json
+import os
 import subprocess
 from datetime import datetime
 
 import pandas as pd
 
 from . import common
-# from .browsecomp_eval import BrowseCompEval
+from .browsecomp_eval import BrowseCompEval
 from .drop_eval import DropEval
 from .gpqa_eval import GPQAEval
 from .healthbench_eval import HealthBenchEval
 from .healthbench_meta_eval import HealthBenchMetaEval
+from .hle_eval import HLEEval
 from .math_eval import MathEval
 from .mgsm_eval import MGSMEval
 from .mmlu_eval import MMLUEval
-from .humaneval_eval import HumanEval
+# from .humaneval_eval import HumanEval
 from .sampler.chat_completion_sampler import (
     OPENAI_SYSTEM_MESSAGE_API,
     OPENAI_SYSTEM_MESSAGE_CHATGPT,
     ChatCompletionSampler,
 )
 from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS
+from .sampler.gpt_researcher_sampler import GPTResearcherSampler
 from .sampler.o_chat_completion_sampler import OChatCompletionSampler
 from .sampler.responses_sampler import ResponsesSampler
+from .sampler.smolagent_sampler import SmolAgentSampler
 from .simpleqa_eval import SimpleQAEval
 
 
@@ -58,6 +62,9 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     parser.add_argument(
         "--examples", type=int, help="Number of examples to use (overrides default)"
+    )
+    parser.add_argument(
+        "--output-dir", type=str, default="/tmp", help="Directory to store output files (default: /tmp)"
     )
 
     args = parser.parse_args()
@@ -226,12 +233,37 @@ def main():
             model="claude-3-opus-20240229",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
         ),
-        "claude-3-7-sonnet-20250219": ClaudeCompletionSampler(
+        "claude-3-7-sonnet": ClaudeCompletionSampler(
             model="claude-3-7-sonnet-20250219",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
         ),
         "claude-3-haiku-20240307": ClaudeCompletionSampler(
             model="claude-3-haiku-20240307",
+        ),
+        "claude-4-sonnet": ClaudeCompletionSampler(
+            model="claude-sonnet-4-20250514",
+            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
+            thinking_budget=2048,
+        ),
+        # GPT Researcher models:
+        "gpt-researcher": GPTResearcherSampler(
+            report_type="deep",
+        ),
+        "gpt-researcher-quick": GPTResearcherSampler(
+            report_type="quick",
+        ),
+        "gpt-researcher-outline": GPTResearcherSampler(
+            report_type="outline",
+        ),
+        "gpt-researcher-custom": GPTResearcherSampler(
+            report_type="custom",
+        ),
+        # SmolAgent models:
+        "smolagent": SmolAgentSampler(
+            model="o4-mini",
+        ),
+        "smolagent-gpt-4o": SmolAgentSampler(
+            model="gpt-4o",
         ),
     }
 
@@ -239,6 +271,18 @@ def main():
         print("Available models:")
         for model_name in models.keys():
             print(f" - {model_name}")
+        return
+
+    # Validate and create output directory
+    if not os.path.exists(args.output_dir):
+        try:
+            os.makedirs(args.output_dir, exist_ok=True)
+            print(f"Created output directory: {args.output_dir}")
+        except Exception as e:
+            print(f"Error: Could not create output directory '{args.output_dir}': {e}")
+            return
+    elif not os.path.isdir(args.output_dir):
+        print(f"Error: Output path '{args.output_dir}' exists but is not a directory")
         return
 
     if args.model:
@@ -330,6 +374,19 @@ def main():
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
                 )
+            case "hle":
+                return HLEEval(
+                    grader_model=grading_sampler,
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                )
+            case "hle_text":
+                return HLEEval(
+                    grader_model=grading_sampler,
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    subset_name="text",
+                )
             case _:
                 raise Exception(f"Unrecognized eval type: {eval_name}")
 
@@ -339,8 +396,8 @@ def main():
         for eval_name in evals_list:
             try:
                 evals[eval_name] = get_evals(eval_name, args.debug)
-            except Exception:
-                print(f"Error: eval '{eval_name}' not found.")
+            except Exception as e:
+                print(f"Error: eval '{eval_name}' not found. {e}")
                 return
     else:
         evals = {
@@ -358,6 +415,7 @@ def main():
                 "healthbench_hard",
                 "healthbench_consensus",
                 "healthbench_meta",
+                "hle",
             ]
         }
 
@@ -377,7 +435,7 @@ def main():
             file_stem = f"{eval_name}_{model_name}"
             # file stem should also include the year, month, day, and time in hours and minutes
             file_stem += f"_{date_str}"
-            report_filename = f"/tmp/{file_stem}{debug_suffix}.html"
+            report_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.html"
             print(f"Writing report to {report_filename}")
             with open(report_filename, "w") as fh:
                 fh.write(common.make_report(result))
@@ -386,12 +444,12 @@ def main():
             # Sort metrics by key
             metrics = dict(sorted(metrics.items()))
             print(metrics)
-            result_filename = f"/tmp/{file_stem}{debug_suffix}.json"
+            result_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.json"
             with open(result_filename, "w") as f:
                 f.write(json.dumps(metrics, indent=2))
             print(f"Writing results to {result_filename}")
 
-            full_result_filename = f"/tmp/{file_stem}{debug_suffix}_allresults.json"
+            full_result_filename = f"{args.output_dir}/{file_stem}{debug_suffix}_allresults.json"
             with open(full_result_filename, "w") as f:
                 result_dict = {
                     "score": result.score,
