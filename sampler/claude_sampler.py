@@ -3,6 +3,7 @@ import os
 
 import anthropic
 
+from typing import Dict, List
 from ..types import MessageList, SamplerBase, SamplerResponse
 from .. import common
 
@@ -22,6 +23,74 @@ CLAUDE_SYSTEM_MESSAGE_LMSYS = (
 ).format(currentDateTime="2025-06-01")
 # reference: https://github.com/lm-sys/FastChat/blob/7899355ebe32117fdae83985cf8ee476d2f4243f/fastchat/conversation.py#L894
 
+                
+def parse_content_block(content):
+    """Parse different types of ContentBlock into string representation"""
+    def format_input(input_obj, max_length=200):
+        """Format input object with key-value pairs on separate lines"""
+        if isinstance(input_obj, dict):
+            items = []
+            for key, value in input_obj.items():
+                if isinstance(value, str) and len(value) > max_length:
+                    # Truncate long strings for readability
+                    value = value[:max_length] + "..."
+                items.append(f"  {key}: {value}")
+            return "{\n" + "\n".join(items) + "\n}"
+        elif isinstance(input_obj, list):
+            return "[\n" + "\n".join(input_obj) + "\n]"
+        else:
+            return str(input_obj)
+    
+    def format_content(content_obj, max_length=200):
+        """Format content with proper truncation"""
+        if isinstance(content_obj, list):
+            return "[\n" + "\n".join(format_content(item) for item in content_obj) + "\n]"
+        
+        if "websearchresult" in type(content_obj).__name__.lower():
+            return f"[Web Search Result]\nTitle: {content_obj.title}\nURL: {content_obj.url}"
+        elif "codeexecutiontoolresult" in type(content_obj).__name__.lower():
+            return f"[Code Execution Result]\nCode: {content_obj.code}\nOutput: {content_obj.output}"
+        elif "mcp_tool_use" in type(content_obj).__name__.lower():
+            formatted_input = format_input(content_obj.input)
+            return f"[MCP Tool Use: {content_obj.name}]\nInput: {formatted_input}"
+        elif "mcp_tool_result" in type(content_obj).__name__.lower():
+            return f"[MCP Tool Result]\nContent: {format_content(content_obj.content)}"
+
+        content_str = str(content_obj)
+        if len(content_str) > max_length:
+            return content_str[:max_length] + "..."
+        return content_str
+    
+    if content.type == "text":
+        return content.text
+    elif content.type == "thinking":
+        return content.thinking
+    elif content.type == "redacted_thinking":
+        return f"[Redacted Thinking]\nData: {content.data}"
+    elif content.type == "tool_use":
+        formatted_input = format_input(content.input)
+        return f"[Tool Use: {content.name}]\nID: {content.id}\nInput: {formatted_input}"
+    elif content.type == "server_tool_use":
+        formatted_input = format_input(content.input)
+        return f"[Server Tool Use: {content.name}]\nID: {content.id}\nInput: {formatted_input}"
+    elif content.type == "web_search_tool_result":
+        formatted_content = format_content(content.content)
+        return f"[Web Search Results]\nTool Use ID: {content.tool_use_id}\nContent: {formatted_content}"
+    elif content.type == "code_execution_tool_result":
+        formatted_content = format_content(content.content)
+        return f"[Code Execution Result]\nTool Use ID: {content.tool_use_id}\nContent: {formatted_content}"
+    elif content.type == "container_upload":
+        return f"[Container Upload]\nFile ID: {content.file_id}"
+    elif content.type == "mcp_tool_use":
+        formatted_input = format_input(content.input)
+        return f"[MCP Tool Use: {content.name}]\nServer: {content.server_name}\nID: {content.id}\nInput: {formatted_input}"
+    elif content.type == "mcp_tool_result":
+        error_status = "[ERROR] " if content.is_error else "[SUCCESS] "
+        formatted_content = format_content(content.content)
+        return f"[MCP Tool Result] {error_status}\nTool Use ID: {content.tool_use_id}\nContent: {formatted_content}"
+    else:
+        return f"[Unknown Content Type: {content.type}]\n{str(content)}"
+
 
 class ClaudeCompletionSampler(SamplerBase):
 
@@ -32,6 +101,7 @@ class ClaudeCompletionSampler(SamplerBase):
         temperature: float = 0.0,  # default in Anthropic example
         max_tokens: int = 4096,
         thinking_budget: int | None = None,
+        tools: List[Dict[str, str]] = [],
     ):
         self.client = anthropic.Anthropic()
         self.api_key = os.environ.get("ANTHROPIC_API_KEY")  # please set your API_KEY
@@ -49,6 +119,7 @@ class ClaudeCompletionSampler(SamplerBase):
             self.temperature = 1
         else:
             self.thinking = {"type": "disabled"}
+        self.tools = tools
 
     def _handle_image(
         self,
@@ -88,6 +159,7 @@ class ClaudeCompletionSampler(SamplerBase):
                         temperature=self.temperature,
                         messages=message_list,
                         thinking=self.thinking,
+                        tools=self.tools,
                     )
                     claude_input_messages: MessageList = [{"role": "system", "content": self.system_message}] + message_list
                 else:
@@ -97,17 +169,41 @@ class ClaudeCompletionSampler(SamplerBase):
                         temperature=self.temperature,
                         messages=message_list,
                         thinking=self.thinking,
+                        tools=self.tools,
                     )
                     claude_input_messages = message_list
                 
                 metadata = {}
-                if self.thinking["type"] == "enabled":
-                    metadata["thinking"] = response_message.content[0].thinking
-                if response_message.content[-1].type != "text":
-                    # hy: this can rarely happen, in which case we just retry
-                    print(response_message)
+                extra_convo = []
+                
+                # Group consecutive text blocks, process others
+                processed_blocks = []
+                i = 0
+                while i < len(response_message.content):
+                    block = response_message.content[i]
+                    if block.type == "text":
+                        # Collect consecutive text blocks
+                        j = i
+                        while j < len(response_message.content) and response_message.content[j].type == "text":
+                            j += 1
+                        text_parts = [response_message.content[k].text for k in range(i, j)]
+                        processed_blocks.append(("text", "\n".join(text_parts)))
+                        i = j
+                    else:
+                        processed_blocks.append((block.type, parse_content_block(block)))
+                        i += 1
+                
+                # Last text block becomes response_text, others go to extra_convo
+                if processed_blocks and processed_blocks[-1][0] == "text":
+                    response_text = processed_blocks[-1][1]
+                    extra_convo = [self._pack_message(f"assistant {t}", c) for t, c in processed_blocks[:-1]]
+                else:
+                    # if we don't end with a text block, we retry
                     continue
-                response_text = response_message.content[-1].text
+                
+                if extra_convo:
+                    metadata["extra_convo"] = extra_convo
+                    
                 return SamplerResponse(
                     response_text=response_text,
                     response_metadata=metadata,

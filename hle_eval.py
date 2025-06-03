@@ -162,10 +162,8 @@ class HLEEval(Eval):
             }
 
             model_response = [dict(content=response_text, role="assistant", type="text")]
-            if "thinking" in sampler_response.response_metadata:
-                model_response = [
-                    dict(content=sampler_response.response_metadata["thinking"], role="assistant thinking"),
-                ] + model_response
+            if "extra_convo" in sampler_response.response_metadata:
+                model_response = sampler_response.response_metadata["extra_convo"] + model_response
             
             html = common.jinja_env.from_string(common.HTML_JINJA).render(
                 prompt_messages=actual_queried_prompt_messages,

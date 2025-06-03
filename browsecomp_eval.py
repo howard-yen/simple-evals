@@ -93,53 +93,57 @@ class BrowseCompEval(Eval):
         return match.group(0) if match else "no"  # Default to "no" if no match
 
     def __call__(self, sampler: SamplerBase) -> EvalResult:
-            def fn(row: dict):
-                problem = decrypt(row.get("problem", ""), row.get("canary", ""))
-                answer = decrypt(row.get("answer", ""), row.get("canary", ""))
-                prompt_messages = [
-                    sampler._pack_message(content=QUERY_TEMPLATE.format(Question=problem), role="user")
-                ]
-                sampler_response = sampler(prompt_messages)
-                response_text = sampler_response.response_text
-                actual_queried_prompt_messages = sampler_response.actual_queried_message_list
-                grade_result = self.grade_sample(problem, answer, response_text)
+        def fn(row: dict):
+            problem = decrypt(row.get("problem", ""), row.get("canary", ""))
+            answer = decrypt(row.get("answer", ""), row.get("canary", ""))
+            prompt_messages = [
+                sampler._pack_message(content=QUERY_TEMPLATE.format(Question=problem), role="user")
+            ]
+            sampler_response = sampler(prompt_messages)
+            response_text = sampler_response.response_text
+            actual_queried_prompt_messages = sampler_response.actual_queried_message_list
+            grade_result = self.grade_sample(problem, answer, response_text)
 
-                # Metrics based on grading response
-                is_correct = grade_result == "yes"
-                is_incorrect = grade_result == "no"
-                
-                score = is_correct
-
-                # Create HTML for each sample result
-                html = common.jinja_env.from_string(common.HTML_JINJA).render(
-                    prompt_messages=actual_queried_prompt_messages,
-                    next_message=dict(content=response_text, role="assistant"),
-                    score=score,
-                    correct_answer=answer,
-                    extracted_answer=response_text,
-                )
-                convo = actual_queried_prompt_messages + [dict(content=response_text, role="assistant")]
-                return SingleEvalResult(html=html, score=score, convo=convo, metrics={
-                    "is_correct": is_correct,
-                    "is_incorrect": is_incorrect,
-                })
-
-            # Run evaluation and collect results
-            results = common.map_with_progress(fn, self.examples)
-
-            # Aggregate metrics
-            aggregate_metrics = {
-                "is_correct": sum(result.metrics["is_correct"] for result in results) / len(results),
-                "is_incorrect": sum(result.metrics["is_incorrect"] for result in results) / len(results),
-            }
-            print("AGGREGATE METRICS") 
-            print(aggregate_metrics) 
-            print("##################")
-
-            output_d = {
-                "accuracy": aggregate_metrics["is_correct"],
-            }
+            # Metrics based on grading response
+            is_correct = grade_result == "yes"
+            is_incorrect = grade_result == "no"
             
-            print(f"Accuracy: {output_d['accuracy']:.3f}")
-            
-            return common.aggregate_results(results)
+            score = is_correct
+
+            model_response = [dict(content=response_text, role="assistant", type="text")]
+            if "extra_convo" in sampler_response.response_metadata:
+                model_response = sampler_response.response_metadata["extra_convo"] + model_response
+
+            # Create HTML for each sample result
+            html = common.jinja_env.from_string(common.HTML_JINJA).render(
+                prompt_messages=actual_queried_prompt_messages,
+                next_message=model_response,
+                score=score,
+                correct_answer=answer,
+                extracted_answer=response_text,
+            )
+            convo = actual_queried_prompt_messages + model_response
+            return SingleEvalResult(html=html, score=score, convo=convo, metrics={
+                "is_correct": is_correct,
+                "is_incorrect": is_incorrect,
+            })
+
+        # Run evaluation and collect results
+        results = common.map_with_progress(fn, self.examples)
+
+        # Aggregate metrics
+        aggregate_metrics = {
+            "is_correct": sum(result.metrics["is_correct"] for result in results) / len(results),
+            "is_incorrect": sum(result.metrics["is_incorrect"] for result in results) / len(results),
+        }
+        print("AGGREGATE METRICS") 
+        print(aggregate_metrics) 
+        print("##################")
+
+        output_d = {
+            "accuracy": aggregate_metrics["is_correct"],
+        }
+        
+        print(f"Accuracy: {output_d['accuracy']:.3f}")
+        
+        return common.aggregate_results(results)

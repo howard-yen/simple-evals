@@ -474,6 +474,10 @@ class HealthBenchEval(Eval):
 
             score = metrics["overall_score"]
 
+            model_response = [dict(content=response_text, role="assistant", type="text")]
+            if self.physician_completions_mode is None and "extra_convo" in sampler_response.response_metadata:
+                model_response = sampler_response.response_metadata["extra_convo"] + model_response
+
             # Create HTML for each sample result
             html = common.jinja_env.from_string(
                 HEALTHBENCH_HTML_JINJA.replace(
@@ -482,14 +486,12 @@ class HealthBenchEval(Eval):
                 )
             ).render(
                 prompt_messages=actual_queried_prompt_messages,
-                next_message=dict(content=response_text, role="assistant"),
+                next_message=model_response,
                 score=metrics["overall_score"],
                 extracted_answer=response_text,
             )
 
-            convo = actual_queried_prompt_messages + [
-                dict(content=response_text, role="assistant")
-            ]
+            convo = actual_queried_prompt_messages + model_response
             return SingleEvalResult(
                 html=html,
                 score=score,
@@ -500,7 +502,7 @@ class HealthBenchEval(Eval):
                     "usage": get_usage_dict(response_usage),
                     "rubric_items": rubric_items_with_grades,
                     "prompt": actual_queried_prompt_messages,
-                    "completion": [dict(content=response_text, role="assistant")],
+                    "completion": model_response,
                     "prompt_id": row["prompt_id"],
                     "completion_id": hashlib.sha256(
                         (row["prompt_id"] + response_text).encode("utf-8")

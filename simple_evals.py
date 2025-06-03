@@ -30,6 +30,12 @@ from .sampler.smolagent_sampler import SmolAgentSampler
 from .simpleqa_eval import SimpleQAEval
 
 
+def get_config_path(relative_path):
+    """Get absolute path to a config file relative to this script's location."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, relative_path)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run sampling and evaluations using different samplers and evaluations."
@@ -66,6 +72,9 @@ def main():
     parser.add_argument(
         "--output-dir", type=str, default="/tmp", help="Directory to store output files (default: /tmp)"
     )
+    parser.add_argument(
+        "--tag", type=str, help="Tag to add to the output path in place of the date", default=""
+    )
 
     args = parser.parse_args()
 
@@ -94,16 +103,19 @@ def main():
         "o4-mini": ResponsesSampler(
             model="o4-mini-2025-04-16",
             reasoning_model=True,
+            max_tokens=32768,
         ),
         "o4-mini_high": ResponsesSampler(
             model="o4-mini-2025-04-16",
             reasoning_model=True,
             reasoning_effort="high",
+            max_tokens=32768,
         ),
         "o4-mini_low": ResponsesSampler(
             model="o4-mini-2025-04-16",
             reasoning_model=True,
             reasoning_effort="low",
+            max_tokens=32768,
         ),
         "o1-pro": ResponsesSampler(
             model="o1-pro",
@@ -139,23 +151,29 @@ def main():
             reasoning_effort="low",
         ),
         # GPT-4.1 models
-        "gpt-4.1": ChatCompletionSampler(
+        "gpt-4.1": ResponsesSampler(
             model="gpt-4.1-2025-04-14",
             system_message=OPENAI_SYSTEM_MESSAGE_API,
-            max_tokens=2048,
+            max_tokens=32768,
         ),
-        "gpt-4.1-temp-1": ChatCompletionSampler(
+        "gpt-4.1-web-search": ResponsesSampler(
+            model="gpt-4.1-2025-04-14",
+            system_message=OPENAI_SYSTEM_MESSAGE_API,
+            max_tokens=32768,
+            tools=common.OPENAI_WEB_SEARCH_TOOL,
+        ),
+        "gpt-4.1-temp-1": ResponsesSampler(
             model="gpt-4.1-2025-04-14",
             system_message=OPENAI_SYSTEM_MESSAGE_API,
             max_tokens=2048,
             temperature=1.0,
         ),
-        "gpt-4.1-mini": ChatCompletionSampler(
+        "gpt-4.1-mini": ResponsesSampler(
             model="gpt-4.1-mini-2025-04-14",
             system_message=OPENAI_SYSTEM_MESSAGE_API,
             max_tokens=2048,
         ),
-        "gpt-4.1-nano": ChatCompletionSampler(
+        "gpt-4.1-nano": ResponsesSampler(
             model="gpt-4.1-nano-2025-04-14",
             system_message=OPENAI_SYSTEM_MESSAGE_API,
             max_tokens=2048,
@@ -243,11 +261,20 @@ def main():
         "claude-4-sonnet": ClaudeCompletionSampler(
             model="claude-sonnet-4-20250514",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
-            thinking_budget=2048,
+            max_tokens=8192,
+            thinking_budget=6000,
+        ),
+        "claude-4-sonnet-web-search": ClaudeCompletionSampler(
+            model="claude-sonnet-4-20250514",
+            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
+            max_tokens=8192,
+            thinking_budget=6000,
+            tools=common.ANTHROPIC_WEB_SEARCH_TOOL,
         ),
         # GPT Researcher models:
         "gpt-researcher": GPTResearcherSampler(
             report_type="deep",
+            config_path=get_config_path("configs/gpt-researcher.json")
         ),
         "gpt-researcher-quick": GPTResearcherSampler(
             report_type="quick",
@@ -416,6 +443,7 @@ def main():
                 "healthbench_consensus",
                 "healthbench_meta",
                 "hle",
+                "hle_text",
             ]
         }
 
@@ -434,7 +462,10 @@ def main():
             # ^^^ how to use a sampler
             file_stem = f"{eval_name}_{model_name}"
             # file stem should also include the year, month, day, and time in hours and minutes
-            file_stem += f"_{date_str}"
+            if args.tag:
+                file_stem += f"_{args.tag}"
+            else:
+                file_stem += f"_{date_str}"
             report_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.html"
             print(f"Writing report to {report_filename}")
             with open(report_filename, "w") as fh:

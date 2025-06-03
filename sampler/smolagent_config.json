@@ -1,0 +1,11 @@
+{
+    "model": "o1",
+    "max_completion_tokens": 32768,
+    "max_steps": 20,
+    "verbosity_level": 2,
+    "planning_interval": 4,
+    "text_limit": 100000,
+    "viewport_size": 5120,
+    "timeout": 300,
+    "downloads_folder": "downloads_folder"
+}

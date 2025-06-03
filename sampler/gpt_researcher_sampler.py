@@ -72,17 +72,17 @@ class GPTResearcherSampler(SamplerBase):
         }
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
-        # Extract the user question from the message list
-        user_messages = [msg for msg in message_list if msg.get("role") == "user"]
-        if not user_messages:
-            return SamplerResponse(
-                response_text="No user message found",
-                response_metadata={},
-                actual_queried_message_list=message_list,
-            )
-        
-        # Use the last user message as the research query
-        question = user_messages[-1].get("content", "")
+        # If there's only one message, use it directly
+        if len(message_list) == 1:
+            question = message_list[0].get("content", "")
+        else:
+            # Concatenate all messages with their roles
+            question_parts = []
+            for msg in message_list:
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                question_parts.append(f"[{role}]: {content}")
+            question = "\n\n".join(question_parts)
         
         # Add system message if provided
         if self.system_message:

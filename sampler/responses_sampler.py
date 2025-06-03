@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Any
+from typing import Any, Dict, List
 
 import openai
 from openai import OpenAI
@@ -21,6 +21,7 @@ class ResponsesSampler(SamplerBase):
         max_tokens: int = 1024,
         reasoning_model: bool = False,
         reasoning_effort: str | None = None,
+        tools: List[Dict[str, str]] | None = None,
     ):
         self.api_key_name = "OPENAI_API_KEY"
         assert os.environ.get("OPENAI_API_KEY"), "Please set OPENAI_API_KEY"
@@ -32,6 +33,7 @@ class ResponsesSampler(SamplerBase):
         self.image_format = "url"
         self.reasoning_model = reasoning_model
         self.reasoning_effort = reasoning_effort
+        self.tools = tools
 
     def _handle_image(
         self,
@@ -70,6 +72,8 @@ class ResponsesSampler(SamplerBase):
                         model=self.model,
                         input=message_list,
                         reasoning=reasoning,
+                        max_output_tokens=self.max_tokens,
+                        tools=self.tools,
                     )
                 else:
                     response = self.client.responses.create(
@@ -77,6 +81,7 @@ class ResponsesSampler(SamplerBase):
                         input=message_list,
                         temperature=self.temperature,
                         max_output_tokens=self.max_tokens,
+                        tools=self.tools,
                     )
                 return SamplerResponse(
                     response_text=response.output_text,
