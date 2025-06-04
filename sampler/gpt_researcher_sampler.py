@@ -6,6 +6,9 @@ from gpt_researcher import GPTResearcher
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 
+GPT_RESEARCHER_SYSTEM_MESSAGE = """
+You are a helpful assistant.
+""".strip()
 
 class CustomLogsHandler:
     """A custom Logs handler class to handle JSON data."""
@@ -15,7 +18,6 @@ class CustomLogsHandler:
     async def send_json(self, data: Dict[str, Any]) -> None:
         """Send JSON data and log it."""
         self.logs.append(data)  # Append data to logs
-
 
 class GPTResearcherSampler(SamplerBase):
     """
@@ -48,6 +50,7 @@ class GPTResearcherSampler(SamplerBase):
         if self.config_path:
             researcher_kwargs["config_path"] = self.config_path
             
+        # Each run requires its own instance of GPTResearcher
         researcher = GPTResearcher(**researcher_kwargs)
         
         # Run research
@@ -69,9 +72,15 @@ class GPTResearcherSampler(SamplerBase):
             "research_data": research_data,
             "logs": logs_handler.logs,
             "costs": researcher.get_costs(),
+            "researcher": researcher,
         }
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
+        if self.system_message:
+            message_list = [
+                self._pack_message("system", self.system_message)
+            ] + message_list
+ 
         # If there's only one message, use it directly
         if len(message_list) == 1:
             question = message_list[0].get("content", "")
@@ -84,20 +93,12 @@ class GPTResearcherSampler(SamplerBase):
                 question_parts.append(f"[{role}]: {content}")
             question = "\n\n".join(question_parts)
         
-        # Add system message if provided
-        if self.system_message:
-            question = f"{self.system_message}\n\n{question}"
-
         trial = 0
         while True:
             try:
                 # Run async research in sync context
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    research_results = loop.run_until_complete(self._get_report(question))
-                finally:
-                    loop.close()
+                research_results = asyncio.run(self._get_report(question))
+                extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in research_results["logs"]]
 
                 return SamplerResponse(
                     response_text=research_results["report"],
@@ -105,7 +106,7 @@ class GPTResearcherSampler(SamplerBase):
                         "sources": research_results["sources"],
                         "urls": research_results["urls"],
                         "research_data": research_results["research_data"],
-                        "logs": research_results["logs"],
+                        "extra_convo": extra_convo,
                         "costs": research_results["costs"],
                     },
                     actual_queried_message_list=message_list,
@@ -128,7 +129,6 @@ class GPTResearcherSampler(SamplerBase):
                             "sources": [],
                             "urls": [],
                             "research_data": None,
-                            "logs": [],
                             "costs": 0,
                         },
                         actual_queried_message_list=message_list,

@@ -103,7 +103,7 @@ class ClaudeCompletionSampler(SamplerBase):
         thinking_budget: int | None = None,
         tools: List[Dict[str, str]] = [],
     ):
-        self.client = anthropic.Anthropic()
+        self.client = anthropic.Anthropic(timeout=1800)
         self.api_key = os.environ.get("ANTHROPIC_API_KEY")  # please set your API_KEY
         self.model = model
         self.system_message = system_message

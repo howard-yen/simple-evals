@@ -28,6 +28,13 @@ from smolagents import (
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 
+SMOLAGENT_SYSTEM_MESSAGE = """
+You are a helpful assistant.
+For your final response, remember to use the `final_answer` tool to provide your final answer. The tool can be called with the following format:
+```python
+final_answer("Your final response here")
+```
+""".strip()
 
 class SmolAgentSampler(SamplerBase):
     """
@@ -165,6 +172,7 @@ class SmolAgentSampler(SamplerBase):
             additional_authorized_imports=["*"],
             planning_interval=self.planning_interval,
             managed_agents=[text_webbrowser_agent],
+            return_full_result=True,
         )
 
         return manager_agent
@@ -183,34 +191,42 @@ class SmolAgentSampler(SamplerBase):
         trial = 0
         max_retries = 3
         
+        # If there's only one message, use it directly
+        if len(message_list) == 1:
+            user_query = message_list[0].get("content", "")
+        else:
+            # Concatenate all messages with their roles
+            messages = []
+            for msg in message_list:
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                messages.append(f"[{role}]: {content}")
+            user_query = "\n\n".join(messages)
+
         while trial < max_retries:
             try:
-                # Extract the user query from the message list
-                user_query = ""
-                for message in message_list:
-                    if message.get("role") == "user":
-                        user_query = message.get("content", "")
-                        break
-                
-                if not user_query:
-                    return SamplerResponse(
-                        response_text="No user query found in message list",
-                        response_metadata={"error": "No user query"},
-                        actual_queried_message_list=message_list,
-                    )
-                
                 # Run the agent
                 result = self.agent.run(user_query)
-                
-                # Extract response text
-                response_text = str(result) if result else ""
+                response_text = result.output
+                # in HF SmolAgent, the messages are the steps. Each step contains one conversation.
+                # We will save the very last step as the actual queried message list, but we can also save all the steps.
+                messages = result.messages
+                history = []
+
+                # the first message is just the task, which appears again in the second message
+                for message in messages[1:]:
+                    history.append({
+                        "input": message['model_input_messages'],
+                        "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']}
+                    })
+                extra_convo = history[-1]['input']
                 
                 return SamplerResponse(
                     response_text=response_text,
                     response_metadata={
-                        "model": self.model,
-                        "max_steps": self.max_steps,
-                        "trial": trial,
+                        "extra_convo": extra_convo,
+                        "memory": history,
+                        "usage": result.usage,
                     },
                     actual_queried_message_list=message_list,
                 )
