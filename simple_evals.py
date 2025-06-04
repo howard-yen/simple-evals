@@ -16,18 +16,18 @@ from .hle_eval import HLEEval
 from .math_eval import MathEval
 from .mgsm_eval import MGSMEval
 from .mmlu_eval import MMLUEval
+from .simpleqa_eval import SimpleQAEval
 # from .humaneval_eval import HumanEval
 from .sampler.chat_completion_sampler import (
     OPENAI_SYSTEM_MESSAGE_API,
     OPENAI_SYSTEM_MESSAGE_CHATGPT,
     ChatCompletionSampler,
 )
-from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS
-from .sampler.gpt_researcher_sampler import GPTResearcherSampler
 from .sampler.o_chat_completion_sampler import OChatCompletionSampler
 from .sampler.responses_sampler import ResponsesSampler
-from .sampler.smolagent_sampler import SmolAgentSampler
-from .simpleqa_eval import SimpleQAEval
+from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS
+from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_SYSTEM_MESSAGE
+from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 
 
 def get_config_path(relative_path):
@@ -261,8 +261,8 @@ def main():
         "claude-4-sonnet": ClaudeCompletionSampler(
             model="claude-sonnet-4-20250514",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
-            max_tokens=8192,
-            thinking_budget=6000,
+            max_tokens=32768,
+            thinking_budget=30000,
         ),
         "claude-4-sonnet-web-search": ClaudeCompletionSampler(
             model="claude-sonnet-4-20250514",
@@ -274,20 +274,18 @@ def main():
         # GPT Researcher models:
         "gpt-researcher": GPTResearcherSampler(
             report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher.json")
+            config_path=get_config_path("configs/gpt-researcher.json"),
+            system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
         ),
-        "gpt-researcher-quick": GPTResearcherSampler(
-            report_type="quick",
-        ),
-        "gpt-researcher-outline": GPTResearcherSampler(
-            report_type="outline",
-        ),
-        "gpt-researcher-custom": GPTResearcherSampler(
-            report_type="custom",
+        "gpt-researcher-detailed": GPTResearcherSampler(
+            report_type="detailed_report",
+            config_path=get_config_path("configs/gpt-researcher.json"),
+            system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
         ),
         # SmolAgent models:
         "smolagent": SmolAgentSampler(
             model="o4-mini",
+            system_message=SMOLAGENT_SYSTEM_MESSAGE,
         ),
         "smolagent-gpt-4o": SmolAgentSampler(
             model="gpt-4o",
