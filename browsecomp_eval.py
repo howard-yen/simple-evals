@@ -76,7 +76,7 @@ class BrowseCompEval(Eval):
         self.examples = examples * n_repeats
         self.grader_model = grader_model
 
-    def grade_sample(self, question: str, correct_answer: str, response: str) -> str:
+    def grade_sample(self, question: str, correct_answer: str, response: str) -> dict:
         grader_prompt = GRADER_TEMPLATE.format(
             question=question,
             correct_answer=correct_answer,
@@ -89,8 +89,23 @@ class BrowseCompEval(Eval):
         sampler_response = self.grader_model(prompt_messages)
         grading_response = sampler_response.response_text
 
-        match = re.search(r"correct: (yes|no)", grading_response)
-        return match.group(0) if match else "no"  # Default to "no" if no match
+        # Parse extracted_final_answer
+        extracted_final_answer_match = re.search(r"extracted_final_answer: (.+)", grading_response)
+        extracted_final_answer = extracted_final_answer_match.group(1).strip() if extracted_final_answer_match else "None"
+
+        # Parse correctness
+        correct_match = re.search(r"correct: (yes|no)", grading_response)
+        correctness = correct_match.group(1) if correct_match else "no"
+
+        # Parse confidence
+        confidence_match = re.search(r"confidence: (\d+)", grading_response)
+        confidence = int(confidence_match.group(1)) if confidence_match else 100
+
+        return {
+            "extracted_final_answer": extracted_final_answer,
+            "correctness": correctness,
+            "confidence": confidence
+        }
 
     def __call__(self, sampler: SamplerBase) -> EvalResult:
         def fn(row: dict):
@@ -105,8 +120,7 @@ class BrowseCompEval(Eval):
             grade_result = self.grade_sample(problem, answer, response_text)
 
             # Metrics based on grading response
-            is_correct = grade_result == "yes"
-            is_incorrect = grade_result == "no"
+            is_correct = grade_result["correctness"] == "yes"
             
             score = is_correct
 
@@ -120,13 +134,15 @@ class BrowseCompEval(Eval):
                 next_message=model_response,
                 score=score,
                 correct_answer=answer,
-                extracted_answer=response_text,
+                extracted_answer=grade_result["extracted_final_answer"],
             )
             convo = actual_queried_prompt_messages + model_response
+            grade_result["response_text"] = response_text
+            # import pdb; pdb.set_trace()
             return SingleEvalResult(html=html, score=score, convo=convo, metrics={
                 "is_correct": is_correct,
-                "is_incorrect": is_incorrect,
-            })
+                "confidence": grade_result["confidence"],
+            }, example_level_metadata=grade_result)
 
         # Run evaluation and collect results
         results = common.map_with_progress(fn, self.examples)
@@ -134,7 +150,7 @@ class BrowseCompEval(Eval):
         # Aggregate metrics
         aggregate_metrics = {
             "is_correct": sum(result.metrics["is_correct"] for result in results) / len(results),
-            "is_incorrect": sum(result.metrics["is_incorrect"] for result in results) / len(results),
+            "confidence": sum(result.metrics["confidence"] for result in results) / len(results),
         }
         print("AGGREGATE METRICS") 
         print(aggregate_metrics) 
