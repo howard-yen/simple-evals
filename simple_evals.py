@@ -24,11 +24,12 @@ from .sampler.chat_completion_sampler import (
     ChatCompletionSampler,
 )
 from .sampler.o_chat_completion_sampler import OChatCompletionSampler
-from .sampler.responses_sampler import ResponsesSampler
-from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS
-from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_SYSTEM_MESSAGE
+from .sampler.responses_sampler import ResponsesSampler, get_openai_web_search_tool
+from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS, get_anthropic_web_search_tool
+from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
+from .sampler.smolagent_react_sampler import SmolAgentReactSampler
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
-
+from .sampler.litellm_sampler import LiteLLMSampler
 
 def get_config_path(relative_path):
     """Get absolute path to a config file relative to this script's location."""
@@ -160,7 +161,7 @@ def main():
             model="gpt-4.1-2025-04-14",
             system_message=OPENAI_SYSTEM_MESSAGE_API,
             max_tokens=32768,
-            tools=common.OPENAI_WEB_SEARCH_TOOL,
+            tools=[get_openai_web_search_tool(search_context_size="medium")],
         ),
         "gpt-4.1-temp-1": ResponsesSampler(
             model="gpt-4.1-2025-04-14",
@@ -269,7 +270,7 @@ def main():
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
             max_tokens=8192,
             thinking_budget=6000,
-            tools=common.ANTHROPIC_WEB_SEARCH_TOOL,
+            tools=[get_anthropic_web_search_tool(max_uses=5)],
         ),
         # GPT Researcher models:
         "gpt-researcher": GPTResearcherSampler(
@@ -283,13 +284,47 @@ def main():
             system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
         ),
         # SmolAgent models:
-        "smolagent": SmolAgentSampler(
+        "hf-odr": SmolAgentSampler(
             model="o4-mini",
-            system_message=SMOLAGENT_SYSTEM_MESSAGE,
+            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+            verbosity_level=-1, # -1 for no logs, default is 1
         ),
-        "smolagent-gpt-4o": SmolAgentSampler(
-            model="gpt-4o",
+        "smolagent-react": SmolAgentReactSampler(
+            model="o4-mini",
+            system_message=SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE,
+            agent_type="ToolCallingAgent",
         ),
+
+        # Litellm models: remember to set env var for VERTEXAI_PROJECT and VERTEXAI_LOCATION
+        "vertexai-claude-4-sonnet": LiteLLMSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "vertexai-claude-4-sonnet-search": LiteLLMSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
+            max_tokens=32768,
+            reasoning_model=True,
+            tools=[get_anthropic_web_search_tool(max_uses=5)],
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "vertexai-claude-3-7-sonnet": LiteLLMSampler(
+            model="claude-3-7-sonnet@20250219",
+            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}}
+        ),
+        # not sure why just setting the env vars doesn't work
+        "azure-o4-mini": LiteLLMSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"api_base": os.environ["AZURE_API_BASE"], "api_key": os.environ["AZURE_API_KEY"], "api_version": os.environ["AZURE_API_VERSION"]}
+        )
     }
 
     if args.list_models:
@@ -367,6 +402,8 @@ def main():
                 return BrowseCompEval(
                     grader_model=grading_sampler,
                     num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
                 )
             case "healthbench":
                 return HealthBenchEval(
@@ -404,12 +441,14 @@ def main():
                     grader_model=grading_sampler,
                     num_examples=10 if debug_mode else num_examples,
                     n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
                 )
             case "hle_text":
                 return HLEEval(
                     grader_model=grading_sampler,
                     num_examples=10 if debug_mode else num_examples,
                     n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
                     subset_name="text",
                 )
             case _:
@@ -456,14 +495,22 @@ def main():
     date_str = now.strftime("%Y%m%d_%H%M%S")
     for model_name, sampler in models.items():
         for eval_name, eval_obj in evals.items():
-            result = eval_obj(sampler)
-            # ^^^ how to use a sampler
             file_stem = f"{eval_name}_{model_name}"
             # file stem should also include the year, month, day, and time in hours and minutes
             if args.tag:
                 file_stem += f"_{args.tag}"
             else:
                 file_stem += f"_{date_str}"
+            result_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.json"
+            
+            # Check if result file already exists
+            if os.path.exists(result_filename):
+                print(f"Result file {result_filename} already exists, skipping evaluation...")
+                mergekey2resultpath[f"{file_stem}"] = result_filename
+                continue
+            
+            result = eval_obj(sampler)
+            # ^^^ how to use a sampler
             report_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.html"
             print(f"Writing report to {report_filename}")
             with open(report_filename, "w") as fh:
@@ -473,7 +520,6 @@ def main():
             # Sort metrics by key
             metrics = dict(sorted(metrics.items()))
             print(metrics)
-            result_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.json"
             with open(result_filename, "w") as f:
                 f.write(json.dumps(metrics, indent=2))
             print(f"Writing results to {result_filename}")
