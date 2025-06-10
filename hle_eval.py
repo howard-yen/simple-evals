@@ -81,7 +81,7 @@ def calib_err(confidence, correct, p='2', beta=100):
 
 
 class HLEEval(Eval):
-    def __init__(self, grader_model: SamplerBase, num_examples: int | None = None, n_repeats: int = 1, subset_name: Literal["text", "all"] | None = None):
+    def __init__(self, grader_model: SamplerBase, num_examples: int | None = None, n_repeats: int = 1, n_threads: int = 1, subset_name: Literal["text", "all"] | None = None):
         # Data loading (keeping the original HLE data loading logic)
         dataset = load_dataset("cais/hle", split="test")
         if subset_name == "text":
@@ -95,6 +95,7 @@ class HLEEval(Eval):
             rng = random.Random(0)
             examples = rng.sample(examples, num_examples)
         self.examples = examples * n_repeats
+        self.n_threads = n_threads
         self.grader_model = grader_model
 
     def grade_sample(self, question: str, correct_answer: str, response: str) -> dict:
@@ -183,16 +184,11 @@ class HLEEval(Eval):
                     "is_correct": score,
                     "confidence": grade_result["confidence"],
                 },
-                example_level_metadata={
-                    "extracted_final_answer": grade_result["extracted_final_answer"],
-                    "reasoning": grade_result["reasoning"],
-                    "correctness": grade_result["correctness"],
-                    "confidence": grade_result["confidence"]
-                }
+                example_level_metadata=grade_result
             )
 
         # Run evaluation and collect results
-        results = common.map_with_progress(fn, self.examples)
+        results = common.map_with_progress(fn, self.examples, num_threads=self.n_threads)
 
         calibration_error = calib_err(
             np.array([result.metrics["confidence"] for result in results]),

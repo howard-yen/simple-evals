@@ -168,25 +168,33 @@ def get_usage_dict(response_usage) -> dict[str, int | None]:
     try:
         return {
             "input_tokens": response_usage.input_tokens,
-            "input_cached_tokens": response_usage.input_tokens_details.cached_tokens
+            "input_cached_tokens": (response_usage.input_tokens_details.cached_tokens
             if hasattr(response_usage.input_tokens_details, "cached_tokens")
-            else response_usage.input_tokens_details["cached_tokens"],
+            else response_usage.input_tokens_details["cached_tokens"])
+            if hasattr(response_usage, "input_tokens_details")
+            else None,
             "output_tokens": response_usage.output_tokens,
-            "output_reasoning_tokens": response_usage.output_tokens_details.reasoning_tokens
+            "output_reasoning_tokens": (response_usage.output_tokens_details.reasoning_tokens
             if hasattr(response_usage.output_tokens_details, "reasoning_tokens")
-            else response_usage.output_tokens_details["reasoning_tokens"],
+            else response_usage.output_tokens_details["reasoning_tokens"])
+            if hasattr(response_usage, "output_tokens_details")
+            else None,
             "total_tokens": response_usage.total_tokens,
         }
     except AttributeError:
         return {
             "input_tokens": response_usage.prompt_tokens,
-            "input_cached_tokens": response_usage.prompt_tokens_details.cached_tokens
+            "input_cached_tokens": (response_usage.prompt_tokens_details.cached_tokens
             if hasattr(response_usage.prompt_tokens_details, "cached_tokens")
-            else response_usage.prompt_tokens_details["cached_tokens"],
+            else response_usage.prompt_tokens_details["cached_tokens"])
+            if hasattr(response_usage, "prompt_tokens_details")
+            else None,
             "output_tokens": response_usage.completion_tokens,
-            "output_reasoning_tokens": response_usage.completion_tokens_details.reasoning_tokens
+            "output_reasoning_tokens": (response_usage.completion_tokens_details.reasoning_tokens
             if hasattr(response_usage.completion_tokens_details, "reasoning_tokens")
-            else response_usage.completion_tokens_details["reasoning_tokens"],
+            else response_usage.completion_tokens_details["reasoning_tokens"])
+            if hasattr(response_usage, "completion_tokens_details")
+            else None,
             "total_tokens": response_usage.total_tokens,
         }
 
@@ -449,6 +457,11 @@ class HealthBenchEval(Eval):
     def __call__(self, sampler: SamplerBase) -> EvalResult:
         def fn(row: dict):
             prompt_messages = row["prompt"]
+            # HY: This is not in the original code, but I think it makes sense to add another prompt explicitly asking the system to act as a physician.
+            prompt_messages.insert(0, dict(
+                content="You are a medical professional. Please act as a physician when responding to the user.", 
+                role="user"
+            ))
 
             if self.physician_completions_mode is not None:
                 response_text = row["completion_to_trial"]
@@ -473,8 +486,20 @@ class HealthBenchEval(Eval):
             )
 
             score = metrics["overall_score"]
-
             model_response = [dict(content=response_text, role="assistant", type="text")]
+
+            metadata= {
+                "score": score,
+                "usage": get_usage_dict(response_usage),
+                "rubric_items": rubric_items_with_grades,
+                "prompt": actual_queried_prompt_messages,
+                "completion": model_response,
+                "prompt_id": row["prompt_id"],
+                "completion_id": hashlib.sha256(
+                    (row["prompt_id"] + response_text).encode("utf-8")
+                ).hexdigest(),
+            }
+
             if self.physician_completions_mode is None and "extra_convo" in sampler_response.response_metadata:
                 model_response = sampler_response.response_metadata["extra_convo"] + model_response
 
@@ -497,17 +522,7 @@ class HealthBenchEval(Eval):
                 score=score,
                 convo=convo,
                 metrics=metrics,
-                example_level_metadata={
-                    "score": score,
-                    "usage": get_usage_dict(response_usage),
-                    "rubric_items": rubric_items_with_grades,
-                    "prompt": actual_queried_prompt_messages,
-                    "completion": model_response,
-                    "prompt_id": row["prompt_id"],
-                    "completion_id": hashlib.sha256(
-                        (row["prompt_id"] + response_text).encode("utf-8")
-                    ).hexdigest(),
-                },
+                example_level_metadata=metadata,
             )
 
         results = common.map_with_progress(

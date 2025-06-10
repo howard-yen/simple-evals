@@ -64,7 +64,7 @@ def decrypt(ciphertext_b64: str, password: str) -> str:
 
 
 class BrowseCompEval(Eval):
-    def __init__(self, grader_model: SamplerBase, num_examples: int | None = None, n_repeats: int = 1):
+    def __init__(self, grader_model: SamplerBase, num_examples: int | None = None, n_repeats: int = 1, n_threads: int = 1):
         df = pandas.read_csv(
             "https://openaipublic.blob.core.windows.net/simple-evals/browse_comp_test_set.csv"
         )
@@ -75,6 +75,7 @@ class BrowseCompEval(Eval):
             examples = rng.sample(examples, num_examples)
         self.examples = examples * n_repeats
         self.grader_model = grader_model
+        self.n_threads = n_threads
 
     def grade_sample(self, question: str, correct_answer: str, response: str) -> dict:
         grader_prompt = GRADER_TEMPLATE.format(
@@ -145,7 +146,7 @@ class BrowseCompEval(Eval):
             }, example_level_metadata=grade_result)
 
         # Run evaluation and collect results
-        results = common.map_with_progress(fn, self.examples)
+        results = common.map_with_progress(fn, self.examples, num_threads=self.n_threads)
 
         # Aggregate metrics
         aggregate_metrics = {

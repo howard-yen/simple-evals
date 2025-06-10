@@ -162,14 +162,6 @@ HTML_JINJA = """
 """
 
 
-# https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses
-OPENAI_WEB_SEARCH_TOOL = [{"type": "web_search_preview_2025_03_11"}]
-
-ANTHROPIC_WEB_SEARCH_TOOL = [{
-        "type": "web_search_20250305",
-        "name": "web_search",
-        "max_uses": 5,
-}]
 
 def format_multichoice_question(row):
     return QUERY_TEMPLATE_MULTICHOICE.format(**row)
