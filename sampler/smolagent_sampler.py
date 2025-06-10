@@ -28,7 +28,7 @@ from smolagents import (
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 
-SMOLAGENT_SYSTEM_MESSAGE = """
+SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE = """
 You are a helpful assistant.
 For your final response, remember to use the `final_answer` tool to provide your final answer. The tool can be called with the following format:
 ```python
@@ -36,9 +36,20 @@ final_answer("Your final response here")
 ```
 """.strip()
 
+SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE = """
+You are a helpful assistant.
+For your final response, remember to use the `final_answer` tool to provide your final answer. The tool can be called with the following format:
+{
+  "name": "final_answer",
+  "arguments": {"answer": "insert your final answer here"}
+}
+""".strip()
+
 class SmolAgentSampler(SamplerBase):
     """
     Sample from SmolAgents with configurable parameters and proper error handling
+    This sampler uses the HuggingFace Open Deep Research agent
+    https://github.com/huggingface/smolagents/tree/main/examples/open_deep_research
     """
 
     def __init__(
@@ -48,7 +59,7 @@ class SmolAgentSampler(SamplerBase):
         config_path: str | None = None,
         max_completion_tokens: int = 32768,
         max_steps: int = 20,
-        verbosity_level: int = 2,
+        verbosity_level: int = 1,
         planning_interval: int = 4,
         text_limit: int = 100000,
         viewport_size: int = 5120,
@@ -84,9 +95,6 @@ class SmolAgentSampler(SamplerBase):
         # Setup browser configuration
         self._setup_browser_config()
         
-        # Create agent
-        self.agent = self._create_agent()
-
     def _load_config(self, config_path: str) -> None:
         """Load configuration from JSON file"""
         try:
@@ -183,6 +191,10 @@ class SmolAgentSampler(SamplerBase):
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         """Execute the agent with proper error handling and retry logic"""
+        # The current agent does not support parallel calls as the memory and steps are shared.
+        # For each call, we need to create a new agent.
+        agent = self._create_agent()
+        
         if self.system_message:
             message_list = [
                 self._pack_message("system", self.system_message)
@@ -206,8 +218,14 @@ class SmolAgentSampler(SamplerBase):
         while trial < max_retries:
             try:
                 # Run the agent
-                result = self.agent.run(user_query)
+                result = agent.run(user_query)
                 response_text = result.output
+                if response_text is None:
+                    raise Exception("No response text, retrying...")
+
+                # HF SmolAgent may return int or other types
+                response_text = str(response_text)
+
                 # in HF SmolAgent, the messages are the steps. Each step contains one conversation.
                 # We will save the very last step as the actual queried message list, but we can also save all the steps.
                 messages = result.messages
@@ -220,13 +238,14 @@ class SmolAgentSampler(SamplerBase):
                         "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']}
                     })
                 extra_convo = history[-1]['input']
+                extra_convo = [{"role": x["role"], "content": "\n".join([y["text"] for y in x["content"]])} for x in extra_convo]
                 
                 return SamplerResponse(
                     response_text=response_text,
                     response_metadata={
                         "extra_convo": extra_convo,
                         "memory": history,
-                        "usage": result.usage,
+                        "usage": result.token_usage,
                     },
                     actual_queried_message_list=message_list,
                 )

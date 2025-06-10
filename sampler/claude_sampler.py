@@ -3,9 +3,18 @@ import os
 
 import anthropic
 
-from typing import Dict, List
+from typing import Dict, List, Any
 from ..types import MessageList, SamplerBase, SamplerResponse
 from .. import common
+
+
+def get_anthropic_web_search_tool(max_uses: int = 5) -> List[Dict[str, Any]]:
+    return [{
+        "type": "web_search_20250305",
+        "name": "web_search",
+        "max_uses": max_uses,
+    }]
+
 
 CLAUDE_SYSTEM_MESSAGE_LMSYS = (
     "The assistant is Claude, created by Anthropic. The current date is "
@@ -213,6 +222,14 @@ class ClaudeCompletionSampler(SamplerBase):
                 exception_backoff = 2**trial  # expontial back off
                 print(
                     f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec",
+                    e,
+                )
+                time.sleep(exception_backoff)
+                trial += 1
+            except anthropic.InternalServerError as e:
+                exception_backoff = 2**trial  # expontial back off
+                print(
+                    f"Internal server error so wait and retry {trial} after {exception_backoff} sec",
                     e,
                 )
                 time.sleep(exception_backoff)

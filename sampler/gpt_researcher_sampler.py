@@ -98,7 +98,7 @@ class GPTResearcherSampler(SamplerBase):
             try:
                 # Run async research in sync context
                 research_results = asyncio.run(self._get_report(question))
-                extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in research_results["logs"]]
+                extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in research_results["logs"] if x['type'] == "logs"]
 
                 return SamplerResponse(
                     response_text=research_results["report"],

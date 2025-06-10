@@ -1,11 +1,16 @@
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Any
 
 import openai
 from openai import OpenAI
 
 from ..types import MessageList, SamplerBase, SamplerResponse
+
+
+# https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses
+def get_openai_web_search_tool(search_context_size: str = "medium") -> Dict[str, Any]:
+    return {"type": "web_search_preview_2025_03_11", "search_context_size": search_context_size}
 
 
 class ResponsesSampler(SamplerBase):
