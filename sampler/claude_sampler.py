@@ -9,11 +9,11 @@ from .. import common
 
 
 def get_anthropic_web_search_tool(max_uses: int = 5) -> List[Dict[str, Any]]:
-    return [{
+    return {
         "type": "web_search_20250305",
         "name": "web_search",
         "max_uses": max_uses,
-    }]
+    }
 
 
 CLAUDE_SYSTEM_MESSAGE_LMSYS = (

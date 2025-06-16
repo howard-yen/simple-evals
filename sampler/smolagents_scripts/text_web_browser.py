@@ -467,11 +467,11 @@ class ArchiveSearchTool(Tool):
         response_notimestamp = requests.get(no_timestamp_url).json()
         if "archived_snapshots" in response and "closest" in response["archived_snapshots"]:
             closest = response["archived_snapshots"]["closest"]
-            print("Archive found!", closest)
+            # print("Archive found!", closest)
 
         elif "archived_snapshots" in response_notimestamp and "closest" in response_notimestamp["archived_snapshots"]:
             closest = response_notimestamp["archived_snapshots"]["closest"]
-            print("Archive found!", closest)
+            # print("Archive found!", closest)
         else:
             raise Exception(f"Your {url=} was not archived on Wayback Machine, try a different url.")
         target_url = closest["url"]

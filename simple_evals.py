@@ -30,6 +30,7 @@ from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYS
 from .sampler.smolagent_react_sampler import SmolAgentReactSampler
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
+from .sampler.react_sampler import ReactSampler
 
 def get_config_path(relative_path):
     """Get absolute path to a config file relative to this script's location."""
@@ -75,6 +76,9 @@ def main():
     )
     parser.add_argument(
         "--tag", type=str, help="Tag to add to the output path in place of the date", default=""
+    )
+    parser.add_argument(
+        "--model_seed", type=int, help="Seed to use for the model", default=None
     )
 
     args = parser.parse_args()
@@ -268,8 +272,8 @@ def main():
         "claude-4-sonnet-web-search": ClaudeCompletionSampler(
             model="claude-sonnet-4-20250514",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
-            max_tokens=8192,
-            thinking_budget=6000,
+            max_tokens=32768,
+            thinking_budget=30000,
             tools=[get_anthropic_web_search_tool(max_uses=5)],
         ),
         # GPT Researcher models:
@@ -285,18 +289,18 @@ def main():
         ),
         # SmolAgent models:
         "hf-odr": SmolAgentSampler(
-            model="o4-mini",
+            model="azure/o4-mini",
             system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
             verbosity_level=-1, # -1 for no logs, default is 1
         ),
         "smolagent-react": SmolAgentReactSampler(
-            model="o4-mini",
+            model="azure/o4-mini",
             system_message=SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE,
             agent_type="ToolCallingAgent",
         ),
 
         # Litellm models: remember to set env var for VERTEXAI_PROJECT and VERTEXAI_LOCATION
-        "vertexai-claude-4-sonnet": LiteLLMSampler(
+        "claude-4-sonnet": LiteLLMSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
             max_tokens=32768,
@@ -319,12 +323,26 @@ def main():
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}}
         ),
         # not sure why just setting the env vars doesn't work
-        "azure-o4-mini": LiteLLMSampler(
+        "o4-mini": LiteLLMSampler(
             model="azure/o4-mini",
             max_tokens=32768,
             reasoning_model=True,
-            extra_kwargs={"api_base": os.environ["AZURE_API_BASE"], "api_key": os.environ["AZURE_API_KEY"], "api_version": os.environ["AZURE_API_VERSION"]}
-        )
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "gpt-4.1": LiteLLMSampler(
+            model="azure/gpt-4.1",
+            max_tokens=32768,
+            temperature=0.5,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        # React models: 
+        "react-o4-mini": ReactSampler(
+            model="o4-mini",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
     }
 
     if args.list_models:
