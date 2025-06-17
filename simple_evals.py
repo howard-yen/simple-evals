@@ -333,7 +333,12 @@ def main():
 
         # React models: 
         "react-o4-mini": ReactSampler(
-            model="o4-mini",
+            model="azure/o4-mini",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-claude-4-sonnet": ReactSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
