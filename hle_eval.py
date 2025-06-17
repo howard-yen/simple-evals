@@ -175,6 +175,7 @@ class HLEEval(Eval):
                 extra_info=extra_info,
             )
             convo = actual_queried_prompt_messages + model_response
+            grade_result["id"] = row["id"]
             
             return SingleEvalResult(
                 html=html, 

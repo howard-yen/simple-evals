@@ -139,7 +139,10 @@ class BrowseCompEval(Eval):
             )
             convo = actual_queried_prompt_messages + model_response
             grade_result["response_text"] = response_text
-            # import pdb; pdb.set_trace()
+
+            grade_result["question"] = problem
+            grade_result["answer"] = answer
+
             return SingleEvalResult(html=html, score=score, convo=convo, metrics={
                 "is_correct": is_correct,
                 "confidence": grade_result["confidence"],

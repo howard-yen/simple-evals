@@ -310,7 +310,7 @@ def main():
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
         "vertexai-claude-3-7-sonnet": LiteLLMSampler(
-            model="claude-3-7-sonnet@20250219",
+            model="vertex_ai/claude-3-7-sonnet@20250219",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
             max_tokens=32768,
             reasoning_model=True,

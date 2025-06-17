@@ -164,20 +164,20 @@ def get_usage_dict(response_usage) -> dict[str, int | None]:
             "output_reasoning_tokens": None,
             "total_tokens": None,
         }
-
+    
     try:
         return {
             "input_tokens": response_usage.input_tokens,
             "input_cached_tokens": (response_usage.input_tokens_details.cached_tokens
             if hasattr(response_usage.input_tokens_details, "cached_tokens")
             else response_usage.input_tokens_details["cached_tokens"])
-            if hasattr(response_usage, "input_tokens_details")
+            if hasattr(response_usage, "input_tokens_details") and response_usage.input_tokens_details is not None
             else None,
             "output_tokens": response_usage.output_tokens,
             "output_reasoning_tokens": (response_usage.output_tokens_details.reasoning_tokens
             if hasattr(response_usage.output_tokens_details, "reasoning_tokens")
             else response_usage.output_tokens_details["reasoning_tokens"])
-            if hasattr(response_usage, "output_tokens_details")
+            if hasattr(response_usage, "output_tokens_details") and response_usage.output_tokens_details is not None
             else None,
             "total_tokens": response_usage.total_tokens,
         }
@@ -187,13 +187,13 @@ def get_usage_dict(response_usage) -> dict[str, int | None]:
             "input_cached_tokens": (response_usage.prompt_tokens_details.cached_tokens
             if hasattr(response_usage.prompt_tokens_details, "cached_tokens")
             else response_usage.prompt_tokens_details["cached_tokens"])
-            if hasattr(response_usage, "prompt_tokens_details")
+            if hasattr(response_usage, "prompt_tokens_details") and response_usage.prompt_tokens_details is not None
             else None,
             "output_tokens": response_usage.completion_tokens,
             "output_reasoning_tokens": (response_usage.completion_tokens_details.reasoning_tokens
             if hasattr(response_usage.completion_tokens_details, "reasoning_tokens")
             else response_usage.completion_tokens_details["reasoning_tokens"])
-            if hasattr(response_usage, "completion_tokens_details")
+            if hasattr(response_usage, "completion_tokens_details") and response_usage.completion_tokens_details is not None
             else None,
             "total_tokens": response_usage.total_tokens,
         }
