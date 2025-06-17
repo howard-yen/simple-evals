@@ -101,9 +101,16 @@ class ReactSampler(SamplerBase):
         original_message_list = copy.deepcopy(message_list)
         
         while cur_iter < self.max_iterations:
-            print(f"Iteration {cur_iter}")
+            print(f"Iteration {cur_iter}\n")
             fallback = False
-            response = self.generate(message_list, tools=SEARCH_TOOL)
+            try:
+                response = self.generate(message_list, tools=SEARCH_TOOL)
+            except Exception as e:
+                print(f"Error in iteration {cur_iter}: {e}. Falling back to not using tools.")
+                response = self.generate(original_message_list)
+                fallback = True
+                break
+
             cur_iter += 1
             # if search tool, call retriever, otherwise return the response
             message = response.choices[0].message
