@@ -27,7 +27,6 @@ from .sampler.o_chat_completion_sampler import OChatCompletionSampler
 from .sampler.responses_sampler import ResponsesSampler, get_openai_web_search_tool
 from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS, get_anthropic_web_search_tool
 from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
-from .sampler.smolagent_react_sampler import SmolAgentReactSampler
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler
@@ -292,11 +291,6 @@ def main():
             model="azure/o4-mini",
             system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
             verbosity_level=-1, # -1 for no logs, default is 1
-        ),
-        "smolagent-react": SmolAgentReactSampler(
-            model="azure/o4-mini",
-            system_message=SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE,
-            agent_type="ToolCallingAgent",
         ),
 
         # Litellm models: remember to set env var for VERTEXAI_PROJECT and VERTEXAI_LOCATION
