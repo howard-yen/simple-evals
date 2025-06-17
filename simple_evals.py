@@ -337,6 +337,16 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "qwen3-8b": LiteLLMSampler(
+            model="openai/models/Qwen3-8B",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": "dummy"}
+        ),
+        "react-qwen3-8b": ReactSampler(
+            model="openai/models/Qwen3-8B",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": "dummy"}
+        ),
     }
 
     if args.list_models:
