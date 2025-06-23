@@ -127,7 +127,7 @@ class BrowseCompEval(Eval):
 
             model_response = [dict(content=response_text, role="assistant", type="text")]
             if "extra_convo" in sampler_response.response_metadata:
-                model_response = sampler_response.response_metadata["extra_convo"] + model_response
+                model_response = sampler_response.response_metadata.pop("extra_convo") + model_response
 
             # Create HTML for each sample result
             html = common.jinja_env.from_string(common.HTML_JINJA).render(
@@ -139,6 +139,8 @@ class BrowseCompEval(Eval):
             )
             convo = actual_queried_prompt_messages + model_response
             grade_result["response_text"] = response_text
+            sampler_response.response_metadata.pop("usage", None)
+            grade_result["response_metadata"] = sampler_response.response_metadata
 
             grade_result["question"] = problem
             grade_result["answer"] = answer

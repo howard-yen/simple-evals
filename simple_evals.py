@@ -301,14 +301,6 @@ def main():
             reasoning_model=True,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "vertexai-claude-4-sonnet-search": LiteLLMSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
-            max_tokens=32768,
-            reasoning_model=True,
-            tools=[get_anthropic_web_search_tool(max_uses=5)],
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
         "vertexai-claude-3-7-sonnet": LiteLLMSampler(
             model="vertex_ai/claude-3-7-sonnet@20250219",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,

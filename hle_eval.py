@@ -164,7 +164,7 @@ class HLEEval(Eval):
 
             model_response = [dict(content=response_text, role="assistant", type="text")]
             if "extra_convo" in sampler_response.response_metadata:
-                model_response = sampler_response.response_metadata["extra_convo"] + model_response
+                model_response = sampler_response.response_metadata.pop("extra_convo") + model_response
             
             html = common.jinja_env.from_string(common.HTML_JINJA).render(
                 prompt_messages=actual_queried_prompt_messages,
@@ -176,6 +176,8 @@ class HLEEval(Eval):
             )
             convo = actual_queried_prompt_messages + model_response
             grade_result["id"] = row["id"]
+            sampler_response.response_metadata.pop("usage", None)
+            grade_result["response_metadata"] = sampler_response.response_metadata
             
             return SingleEvalResult(
                 html=html, 

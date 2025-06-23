@@ -34,11 +34,16 @@ SEARCH_TOOL = [{
     }
 }]
 
+REACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+When using the search tool, you should think carefully about the question, decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
+After you have collected all the information you need, you may first summarize and reason about the information, and then write your final answer."""
+
 
 class ReactSampler(SamplerBase):
     def __init__(
         self, 
         model: str, 
+        system_message: str | None = None,
         max_iterations: int=10,
         max_tokens: int=1024,
         temperature: float=1.0,
@@ -46,6 +51,7 @@ class ReactSampler(SamplerBase):
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
+        self.system_message = system_message
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -58,6 +64,7 @@ class ReactSampler(SamplerBase):
             topk=topk,
             use_cache=False,
             use_crawl4ai=True,
+            verbose=False,
         )
         self.retriever = load_retriever(self.retriever_options)
 
@@ -98,6 +105,10 @@ class ReactSampler(SamplerBase):
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         cur_iter = 0
         extra_convo = []
+        if self.system_message:
+            message_list = [
+                self._pack_message("developer", self.system_message)
+            ] + message_list
         original_message_list = copy.deepcopy(message_list)
         
         while cur_iter < self.max_iterations:
@@ -107,9 +118,18 @@ class ReactSampler(SamplerBase):
                 response = self.generate(message_list, tools=SEARCH_TOOL)
             except Exception as e:
                 print(f"Error in iteration {cur_iter}: {e}. Falling back to not using tools.")
-                response = self.generate(original_message_list)
-                fallback = True
-                break
+                # it's possible that this generate call will fail, we need to handle this case.
+                try:
+                    response = self.generate(original_message_list)
+                    fallback = True
+                    break
+                except Exception as fallback_error:
+                    print(f"Fallback response also failed: {fallback_error}. Returning empty response.")
+                    return SamplerResponse(
+                        response_text="",
+                        response_metadata={"usage": None, "fallback": True},
+                        actual_queried_message_list=original_message_list,
+                    )
 
             cur_iter += 1
             # if search tool, call retriever, otherwise return the response
@@ -138,6 +158,7 @@ class ReactSampler(SamplerBase):
                     message_list.append(tool_message)
                     extra_convo.append(self._pack_message(f"tool call iter {cur_iter} {tool_call.function.name}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
+
             else:
                 print("No tools used")
                 break

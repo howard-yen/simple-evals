@@ -59,6 +59,7 @@ class LiteLLMSampler(SamplerBase):
         return {"role": role, "content": content}
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
+        # https://github.com/BerriAI/litellm/blob/ef7f8cce9340a596d4fdae3496c6c84dcc4100c4/litellm/llms/base_llm/base_utils.py#L175
         if self.system_message:
             message_list = [
                 self._pack_message("developer", self.system_message)
@@ -72,6 +73,7 @@ class LiteLLMSampler(SamplerBase):
                         messages=message_list,
                         max_tokens=self.max_tokens,
                         tools=self.tools,
+                        timeout=7200,
                         **self.extra_kwargs,
                     )
                 else:
@@ -81,6 +83,7 @@ class LiteLLMSampler(SamplerBase):
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
                         tools=self.tools,
+                        timeout=7200,
                         **self.extra_kwargs,
                     )
 
@@ -89,8 +92,8 @@ class LiteLLMSampler(SamplerBase):
                     raise ValueError("Litellm API returned empty response; retrying")
 
                 metadata = {"usage": response['usage']}
-                if response['choices'][0]['message'].get('thinking_blocks') is not None:
-                    extra_convo = [self._pack_message(x['type'], x['thinking']) for x in response['choices'][0]['message']['thinking_blocks']]
+                if response['choices'][0]['message'].get('reasoning_content') is not None:
+                    extra_convo = [self._pack_message('thinking', response['choices'][0]['message']['reasoning_content'])]
                     metadata["extra_convo"] = extra_convo
                 
                 return SamplerResponse(
