@@ -110,6 +110,7 @@ class LiteLLMSampler(SamplerBase):
                 )
             except Exception as e:
                 exception_backoff = 2**trial  # expontial back off
+                exception_backoff = min(exception_backoff, 128)
                 print(
                     f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec",
                     e,
