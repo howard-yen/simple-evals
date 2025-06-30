@@ -29,7 +29,8 @@ from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSA
 from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
-from .sampler.react_sampler import ReactSampler
+from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
+from .sampler.react_web_sampler import ReactWebSampler, REACT_WEB_SYSTEM_MESSAGE
 
 def get_config_path(relative_path):
     """Get absolute path to a config file relative to this script's location."""
@@ -334,6 +335,15 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+
+        "react-web-o4-mini": ReactWebSampler(
+            model="azure/o4-mini",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
         "qwen3-8b": LiteLLMSampler(
             model="openai/models/Qwen3-8B",
             max_tokens=32768,

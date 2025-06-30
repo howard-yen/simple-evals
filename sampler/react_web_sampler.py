@@ -5,18 +5,20 @@ from typing import Any, Dict, List, Any, Optional, Union
 import copy
 import random
 import requests
+import asyncio
 
+from retrievaltools.utils import scrape_page_content_crawl4ai
 from retrievaltools import load_retriever, RetrieverOptions
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 
 import litellm
 
-SEARCH_TOOL = [{
+SEARCH_TOOL = {
     "type": "function",
     "function": {
         "name": "search",
-        "description": "Search the web",
+        "description": "Search the web for information. This tool will return a list of urls that are relevant to the query.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -32,14 +34,40 @@ SEARCH_TOOL = [{
         },
         "strict": True
     }
-}]
+}
 
-REACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+VISIT_TOOL = {
+     "type": "function",
+    "function": {
+        "name": "open_url",
+        "description": "Open a url and optionally search for a specific query. By default, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The url to open."
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The query to search for on the opened url. This should be the exact text that you are looking for."
+                }
+            },
+            "required": [
+                "url",
+            ],
+            "additionalProperties": False
+        },
+    }
+}   
+
+REACT_WEB_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
 When using the search tool, you should think carefully about the question, decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
+The search tool will return a list of urls, and you should visit the urls that are relevant to the task. To get more information from the url, you should use the visit tool.
 After you have collected all the information you need, you may first summarize and reason about the information, and then write your final answer."""
 
 
-class ReactSampler(SamplerBase):
+class ReactWebSampler(SamplerBase):
     def __init__(
         self, 
         model: str, 
@@ -63,7 +91,7 @@ class ReactSampler(SamplerBase):
             port=8000,
             topk=topk,
             use_cache=False,
-            web_scraping="crawl4ai",
+            web_scraping="none",
             verbose=False,
         )
         self.retriever = load_retriever(self.retriever_options)
@@ -115,7 +143,7 @@ class ReactSampler(SamplerBase):
             print(f"Iteration {cur_iter}\n")
             fallback = False
             try:
-                response = self.generate(message_list, tools=SEARCH_TOOL)
+                response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
             except Exception as e:
                 print(f"Error in iteration {cur_iter}: {e}. Falling back to not using tools.")
                 # it's possible that this generate call will fail, we need to handle this case.
@@ -148,13 +176,31 @@ class ReactSampler(SamplerBase):
                 for tool_call in tool_calls:
                     function_args = json.loads(tool_call.function.arguments)
                     print(f"Function args: {function_args}")
-                    function_response = self.retriever.retrieve(**function_args)[0]
-                    tool_message = {
+
+                    if tool_call.function.name == "search":
+                        function_response = self.retriever.retrieve(**function_args)[0]
+                        tool_message = {
+                                "tool_call_id": tool_call.id,
+                                "role": "tool",
+                                "name": tool_call.function.name,
+                                "content": self.retriever.format_results(function_response, topk=self.retriever_options.topk),
+                            }
+                        
+                    elif tool_call.function.name == "open_url":
+                        function_response = asyncio.run(scrape_page_content_crawl4ai(function_args["url"], function_args.get("query", ""), verbose=False))
+                        success, snippet, fulltext = function_response
+                        if success:
+                            tool_response = f"Successfully opened the url {function_args['url']}.<Content>\n{snippet}\n</Content>"
+                        else:
+                            tool_response = f"Failed to open the url {function_args['url']}."
+
+                        tool_message = {
                             "tool_call_id": tool_call.id,
                             "role": "tool",
                             "name": tool_call.function.name,
-                            "content": self.retriever.format_results(function_response, topk=self.retriever_options.topk),
+                            "content": tool_response,
                         }
+                        
                     message_list.append(tool_message)
                     extra_convo.append(self._pack_message(f"tool call iter {cur_iter} {tool_call.function.name}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
