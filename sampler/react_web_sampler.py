@@ -167,8 +167,16 @@ class ReactWebSampler(SamplerBase):
             # if we reached the max iterations and we still call the tool, we fallback to not using tools
             if tool_calls and cur_iter == self.max_iterations:
                 print("Fallback to not using tools")
-                response = self.generate(original_message_list)
-                fallback = True
+                try: 
+                    response = self.generate(original_message_list)
+                    fallback = True
+                except Exception as e:
+                    print(f"Fallback response also failed: {e}. Returning empty response.")
+                    return SamplerResponse(
+                        response_text="",
+                        response_metadata={"usage": None, "fallback": True},
+                        actual_queried_message_list=original_message_list,
+                    )
                 
             elif tool_calls:
                 print("Using tools")
