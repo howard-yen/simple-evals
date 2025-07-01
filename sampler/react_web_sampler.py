@@ -187,12 +187,15 @@ class ReactWebSampler(SamplerBase):
                             }
                         
                     elif tool_call.function.name == "open_url":
-                        function_response = asyncio.run(scrape_page_content_crawl4ai(function_args["url"], function_args.get("query", ""), verbose=False))
-                        success, snippet, fulltext = function_response
-                        if success:
-                            tool_response = f"Successfully opened the url {function_args['url']}.<Content>\n{snippet}\n</Content>"
+                        if "url" not in function_args:
+                            tool_response = f"Error: Please provide a url to open."
                         else:
-                            tool_response = f"Failed to open the url {function_args['url']}."
+                            function_response = asyncio.run(scrape_page_content_crawl4ai(function_args["url"], function_args.get("query", ""), verbose=False))
+                            success, snippet, fulltext = function_response
+                            if success:
+                                tool_response = f"Successfully opened the url {function_args['url']}.<Content>\n{snippet}\n</Content>"
+                            else:
+                                tool_response = f"Failed to open the url {function_args['url']}."
 
                         tool_message = {
                             "tool_call_id": tool_call.id,
