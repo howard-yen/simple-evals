@@ -188,7 +188,7 @@ class ReactWebSampler(SamplerBase):
                         
                     elif tool_call.function.name == "open_url":
                         if "url" not in function_args:
-                            tool_response = f"Error: Please provide a url to open."
+                            tool_response = f"Error: Please provide a url to open in the function arguments."
                         else:
                             function_response = asyncio.run(scrape_page_content_crawl4ai(function_args["url"], function_args.get("query", ""), verbose=False))
                             success, snippet, fulltext = function_response
