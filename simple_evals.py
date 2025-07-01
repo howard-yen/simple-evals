@@ -31,6 +31,7 @@ from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
 from .sampler.react_web_sampler import ReactWebSampler, REACT_WEB_SYSTEM_MESSAGE
+from .sampler.search_r1_sampler import SearchR1Sampler
 
 def get_config_path(relative_path):
     """Get absolute path to a config file relative to this script's location."""
@@ -347,12 +348,28 @@ def main():
         "qwen3-8b": LiteLLMSampler(
             model="openai/models/Qwen3-8B",
             max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": "dummy"}
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
         "react-qwen3-8b": ReactSampler(
             model="openai/models/Qwen3-8B",
             max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": "dummy"}
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+        "search-r1-qwen3-8b": SearchR1Sampler(
+            model="openai/models/Qwen3-8B",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+
+        "search-r1-qwen2.5-7b-em-ppo": SearchR1Sampler(
+            model="openai/PeterJinGo/SearchR1-nq_hotpotqa_train-qwen2.5-7b-em-ppo",
+            max_tokens=4096,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+        "search-r1-qwen2.5-7b-it-em-ppo": SearchR1Sampler(
+            model="openai/PeterJinGo/SearchR1-nq_hotpotqa_train-qwen2.5-7b-it-em-ppo",
+            max_tokens=4096,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
     }
 
