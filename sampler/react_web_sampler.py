@@ -118,11 +118,12 @@ class ReactWebSampler(SamplerBase):
                 return response
 
             except litellm.BadRequestError as e:
-                print("Bad Request Error", e)
-                raise e
-                
+                print(f"Bad request error: {e}. Returning empty response.")
+                return None
+
             except Exception as e:
                 exception_backoff = 2**trial  # exponential back off
+                exception_backoff = min(exception_backoff, 120)
                 print(
                     f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec",
                     e,
@@ -142,21 +143,16 @@ class ReactWebSampler(SamplerBase):
         while cur_iter < self.max_iterations:
             print(f"Iteration {cur_iter}\n")
             fallback = False
-            try:
-                response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
-            except Exception as e:
+            response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
+            if response is None:
                 print(f"Error in iteration {cur_iter}: {e}. Falling back to not using tools.")
-                # it's possible that this generate call will fail, we need to handle this case.
-                try:
-                    response = self.generate(original_message_list)
-                    fallback = True
-                    break
-                except Exception as fallback_error:
-                    print(f"Fallback response also failed: {fallback_error}. Returning empty response.")
+                response = self.generate(original_message_list)
+                fallback = True
+                if response is None:
                     return SamplerResponse(
-                        response_text="",
-                        response_metadata={"usage": None, "fallback": True},
-                        actual_queried_message_list=original_message_list,
+                            response_text="",
+                            response_metadata={"usage": None, "fallback": True},
+                            actual_queried_message_list=original_message_list,
                     )
 
             cur_iter += 1
@@ -167,15 +163,13 @@ class ReactWebSampler(SamplerBase):
             # if we reached the max iterations and we still call the tool, we fallback to not using tools
             if tool_calls and cur_iter == self.max_iterations:
                 print("Fallback to not using tools")
-                try: 
-                    response = self.generate(original_message_list)
-                    fallback = True
-                except Exception as e:
-                    print(f"Fallback response also failed: {e}. Returning empty response.")
+                response = self.generate(original_message_list)
+                if response is None:
+                    print(f"Fallback response also failed. Returning empty response.")
                     return SamplerResponse(
                         response_text="",
                         response_metadata={"usage": None, "fallback": True},
-                        actual_queried_message_list=original_message_list,
+                        actual_queried_message_list=original_message_list
                     )
                 
             elif tool_calls:

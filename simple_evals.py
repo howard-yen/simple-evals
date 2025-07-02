@@ -333,7 +333,7 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
-        # React models: 
+        # React models:
         "react-o4-mini": ReactSampler(
             model="azure/o4-mini",
             max_tokens=32768,
@@ -354,18 +354,25 @@ def main():
         ),
 
         "qwen3-8b": LiteLLMSampler(
-            model="openai/models/Qwen3-8B",
+            model="openai/Qwen/Qwen3-8B",
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
         "react-qwen3-8b": ReactSampler(
-            model="openai/models/Qwen3-8B",
+            model="openai/Qwen/Qwen3-8B",
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
         "search-r1-qwen3-8b": SearchR1Sampler(
-            model="openai/models/Qwen3-8B",
-            max_tokens=32768,
+            model="openai/Qwen/Qwen2.5-7B",
+            max_tokens=4096,
+            search_endpoint="http://127.0.0.1:8001/retrieve",
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+        "search-r1-qwen2.5-7b-it": SearchR1Sampler(
+            model="openai/Qwen/Qwen2.5-7B-Instruct",
+            max_tokens=4096,
+            search_endpoint="http://127.0.0.1:8001/retrieve",
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
 
@@ -556,13 +563,13 @@ def main():
             else:
                 file_stem += f"_{date_str}"
             result_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.json"
-            
+
             # Check if result file already exists
             if os.path.exists(result_filename):
                 print(f"Result file {result_filename} already exists, skipping evaluation...")
                 mergekey2resultpath[f"{file_stem}"] = result_filename
                 continue
-            
+
             result = eval_obj(sampler)
             # ^^^ how to use a sampler
             report_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.html"
