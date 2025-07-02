@@ -145,7 +145,7 @@ class ReactWebSampler(SamplerBase):
             fallback = False
             response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
             if response is None:
-                print(f"Error in iteration {cur_iter}: {e}. Falling back to not using tools.")
+                print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
                 fallback = True
                 if response is None:
