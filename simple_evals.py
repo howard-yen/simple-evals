@@ -89,6 +89,7 @@ def main():
         "o3": ResponsesSampler(
             model="o3-2025-04-16",
             reasoning_model=True,
+            max_tokens=32768,
         ),
         "o3-temp-1": ResponsesSampler(
             model="o3-2025-04-16",
@@ -123,6 +124,13 @@ def main():
             reasoning_effort="low",
             max_tokens=32768,
         ),
+        "o4-mini-deep-research": ResponsesSampler(
+            model="o4-mini-deep-research-2025-06-26",
+            reasoning_model=True,
+            max_tokens=32768,
+            tools=[get_openai_web_search_tool(search_context_size="medium"), ],
+        ),
+
         "o1-pro": ResponsesSampler(
             model="o1-pro",
             reasoning_model=True,

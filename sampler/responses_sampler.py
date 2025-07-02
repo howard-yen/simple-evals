@@ -13,6 +13,10 @@ def get_openai_web_search_tool(search_context_size: str = "medium") -> Dict[str,
     return {"type": "web_search_preview_2025_03_11", "search_context_size": search_context_size}
 
 
+def get_openai_code_interpreter_tool() -> Dict[str, Any]:
+    return {"type": "code_interpreter", "container": {"type": "auto"}}
+
+
 class ResponsesSampler(SamplerBase):
     """
     Sample from OpenAI's responses API
@@ -88,9 +92,22 @@ class ResponsesSampler(SamplerBase):
                         max_output_tokens=self.max_tokens,
                         tools=self.tools,
                     )
+
+                metadata = {"usage": response.usage}
+                if len(response.output_text) > 1:
+                    extra_convo = []
+                    for o in response.output:
+                        if o.type == "reasoning":
+                            extra_convo.append(self._pack_message(o.type, ""))
+                        elif o.type == "message":
+                            continue
+                        else:
+                            extra_convo.append(self._pack_message(o.type, str(o.action)))
+                    metadata["extra_convo"] = extra_convo
+
                 return SamplerResponse(
                     response_text=response.output_text,
-                    response_metadata={"usage": response.usage},
+                    response_metadata=metadata,
                     actual_queried_message_list=message_list,
                 )
             except openai.BadRequestError as e:
