@@ -89,7 +89,6 @@ def main():
         "o3": ResponsesSampler(
             model="o3-2025-04-16",
             reasoning_model=True,
-            max_tokens=32768,
         ),
         "o3-temp-1": ResponsesSampler(
             model="o3-2025-04-16",
@@ -124,13 +123,6 @@ def main():
             reasoning_effort="low",
             max_tokens=32768,
         ),
-        "o4-mini-deep-research": ResponsesSampler(
-            model="o4-mini-deep-research-2025-06-26",
-            reasoning_model=True,
-            max_tokens=32768,
-            tools=[get_openai_web_search_tool(search_context_size="medium"), ],
-        ),
-
         "o1-pro": ResponsesSampler(
             model="o1-pro",
             reasoning_model=True,
@@ -358,8 +350,10 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
-        "react-qwen3-8b": ReactSampler(
+        "react-web-qwen3-8b": ReactWebSampler(
             model="openai/Qwen/Qwen3-8B",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=50,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
@@ -367,6 +361,38 @@ def main():
             model="openai/Qwen/Qwen2.5-7B",
             max_tokens=4096,
             search_endpoint="http://127.0.0.1:8001/retrieve",
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+
+        "qwen2.5-7b": LiteLLMSampler(
+            model="openai/Qwen/Qwen2.5-7B",
+            max_tokens=4096,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+        "react-web-qwen2.5-7b": ReactWebSampler(
+            model="openai/Qwen/Qwen2.5-7B",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=4096,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+        "search-r1-qwen2.5-7b": SearchR1Sampler(
+            model="openai/Qwen/Qwen2.5-7B",
+            max_tokens=4096,
+            search_endpoint="http://127.0.0.1:8001/retrieve",
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+
+        "qwen2.5-7b-it": LiteLLMSampler(
+            model="openai/Qwen/Qwen2.5-7B-Instruct",
+            max_tokens=4096,
+            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+        ),
+        "react-web-qwen2.5-7b-it": ReactWebSampler(
+            model="openai/Qwen/Qwen2.5-7B-Instruct",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=4096,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
         "search-r1-qwen2.5-7b-it": SearchR1Sampler(
