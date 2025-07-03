@@ -76,6 +76,7 @@ class ReactWebSampler(SamplerBase):
         max_tokens: int=1024,
         temperature: float=1.0,
         topk: int=10,
+        keep_reasoning_content: bool=False,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
@@ -83,6 +84,7 @@ class ReactWebSampler(SamplerBase):
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.keep_reasoning_content = keep_reasoning_content
         self.extra_kwargs = extra_kwargs
 
         self.retriever_options = RetrieverOptions(
@@ -100,6 +102,7 @@ class ReactWebSampler(SamplerBase):
     def _pack_message(self, role, content):
         return {"role": str(role), "content": content}
 
+
     def generate(self, message_list: MessageList, **kwargs):
         trial = 0
         while True:
@@ -110,11 +113,14 @@ class ReactWebSampler(SamplerBase):
                     messages=message_list,
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
+                    timeout=7200,
                     **kwargs
                 )
                 message = response['choices'][0]['message']
-                if message['content'] is None and message.get("tool_calls") is None:
+                if message['content'] is None and message.get("tool_calls") is None and message.get("reasoning_content") is None:
+                    print(f"LiteLLM returned empty response: {response}")
                     raise ValueError("Litellm API returned empty response; retrying")
+                
                 return response
 
             except litellm.BadRequestError as e:
@@ -131,6 +137,7 @@ class ReactWebSampler(SamplerBase):
                 time.sleep(exception_backoff)
                 trial += 1
 
+
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         cur_iter = 0
         extra_convo = []
@@ -144,6 +151,7 @@ class ReactWebSampler(SamplerBase):
             print(f"Iteration {cur_iter}\n")
             fallback = False
             response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
+            
             if response is None:
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
@@ -159,6 +167,12 @@ class ReactWebSampler(SamplerBase):
             # if search tool, call retriever, otherwise return the response
             message = response.choices[0].message
             tool_calls = message.get("tool_calls")
+
+            if message.get('reasoning_content'):
+                reasoning_content = message.get('reasoning_content')
+                extra_convo.append(self._pack_message("assistant thinking", reasoning_content))
+                if self.keep_reasoning_content:
+                    message_list.append({"role": "assistant", "content": "", "reasoning_content": reasoning_content})
 
             # if we reached the max iterations and we still call the tool, we fallback to not using tools
             if tool_calls and cur_iter == self.max_iterations:
@@ -220,8 +234,9 @@ class ReactWebSampler(SamplerBase):
             "usage": response.usage
         }
         message = response['choices'][0]['message']
+        response_text = message['content'] if message['content'] is not None else ""
         return SamplerResponse(
-            response_text=message['content'],
+            response_text=response_text,
             response_metadata=metadata,
             actual_queried_message_list=original_message_list,
         )

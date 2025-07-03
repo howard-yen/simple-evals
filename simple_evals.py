@@ -355,11 +355,13 @@ def main():
             system_message=REACT_WEB_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
+            keep_reasoning_content=True,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
         "search-r1-qwen3-8b": SearchR1Sampler(
-            model="openai/Qwen/Qwen2.5-7B",
-            max_tokens=4096,
+            model="openai/Qwen/Qwen3-8B",
+            max_tokens=32768,
+            reasoning_model=True,
             search_endpoint="http://127.0.0.1:8001/retrieve",
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),

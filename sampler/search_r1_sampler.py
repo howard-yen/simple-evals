@@ -30,6 +30,7 @@ class SearchR1Sampler(SamplerBase):
         max_tokens: int = 1024,
         max_iterations: int = 100,
         search_endpoint: str = "http://127.0.0.1:8080/retrieve",
+        reasoning_model: bool = False,
         topk: int = 3,
         extra_kwargs: Dict[str, Any] = {},
     ):
@@ -40,6 +41,7 @@ class SearchR1Sampler(SamplerBase):
         self.max_iterations = max_iterations
         self.search_endpoint = search_endpoint
         self.topk = topk
+        self.reasoning_model = reasoning_model
         self.extra_kwargs = extra_kwargs
         self.tokenizer = AutoTokenizer.from_pretrained(model.replace("openai/", ""))
         
@@ -90,6 +92,7 @@ class SearchR1Sampler(SamplerBase):
                     prompt=prompt,
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
+                    timeout=7200,
                     **self.extra_kwargs
                 )
                 
@@ -124,7 +127,7 @@ class SearchR1Sampler(SamplerBase):
         message_list[-1]['content'] = SEARCH_R1_USER_PROMPT + message_list[-1]['content']
 
         if self.tokenizer.chat_template:
-            current_prompt = self.tokenizer.apply_chat_template(message_list, add_generation_prompt=True, tokenize=False)
+            current_prompt = self.tokenizer.apply_chat_template(message_list, add_generation_prompt=True, tokenize=False, enable_thinking=self.reasoning_model)
         else:
             current_prompt = self.flatten_message_list(message_list)
             
@@ -147,6 +150,7 @@ class SearchR1Sampler(SamplerBase):
                     output_text=output_text,
                     search_results=search_results
                 )
+                # note that in the search r1 framework, only the search text is added, thinking tokens are discarded
                 current_prompt += search_text
                 
                 # Add to extra conversation for metadata
