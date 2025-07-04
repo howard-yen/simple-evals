@@ -126,6 +126,10 @@ class ReactWebSampler(SamplerBase):
             except litellm.BadRequestError as e:
                 print(f"Bad request error: {e}. Returning empty response.")
                 return None
+            
+            except litellm.APIConnectionError as e:
+                print(f"API connection error: {e}. Returning empty response.")
+                return None
 
             except Exception as e:
                 exception_backoff = 2**trial  # exponential back off
@@ -194,13 +198,11 @@ class ReactWebSampler(SamplerBase):
                     print(f"Function args: {function_args}")
 
                     if tool_call.function.name == "search":
-                        function_response = self.retriever.retrieve(**function_args)[0]
-                        tool_message = {
-                                "tool_call_id": tool_call.id,
-                                "role": "tool",
-                                "name": tool_call.function.name,
-                                "content": self.retriever.format_results(function_response, topk=self.retriever_options.topk),
-                            }
+                        if "query" not in function_args:
+                            tool_response = f"Error: Please provide a query to search for in the function arguments."
+                        else:
+                            function_response = self.retriever.retrieve(**function_args)[0]
+                            tool_response = self.retriever.format_results(function_response, topk=self.retriever_options.topk)
                         
                     elif tool_call.function.name == "open_url":
                         if "url" not in function_args:
@@ -213,13 +215,13 @@ class ReactWebSampler(SamplerBase):
                             else:
                                 tool_response = f"Failed to open the url {function_args['url']}."
 
-                        tool_message = {
-                            "tool_call_id": tool_call.id,
-                            "role": "tool",
-                            "name": tool_call.function.name,
-                            "content": tool_response,
-                        }
-                        
+                    tool_message = {
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": tool_call.function.name,
+                        "content": tool_response,
+                    }
+                    
                     message_list.append(tool_message)
                     extra_convo.append(self._pack_message(f"tool call iter {cur_iter} {tool_call.function.name}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))

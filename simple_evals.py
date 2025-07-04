@@ -344,6 +344,13 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "react-web-claude-4-sonnet": ReactWebSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
 
         "qwen3-8b": LiteLLMSampler(
             model="openai/Qwen/Qwen3-8B",
