@@ -37,7 +37,7 @@ SEARCH_TOOL = {
 }
 
 VISIT_TOOL = {
-     "type": "function",
+    "type": "function",
     "function": {
         "name": "open_url",
         "description": "Open a url and optionally search for a specific query. By default, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text.",
@@ -152,9 +152,14 @@ class ReactWebSampler(SamplerBase):
         original_message_list = copy.deepcopy(message_list)
         
         while cur_iter < self.max_iterations:
+            cur_iter += 1
             print(f"Iteration {cur_iter}\n")
             fallback = False
-            response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
+            if cur_iter == self.max_iterations:
+                message_list.append(self._pack_message("user", "You have reached the maximum number of tool calls. Please complete the task without using any tools."))
+                response = self.generate(message_list)
+            else:
+                response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
             
             if response is None:
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
@@ -167,10 +172,9 @@ class ReactWebSampler(SamplerBase):
                             actual_queried_message_list=original_message_list,
                     )
 
-            cur_iter += 1
             # if search tool, call retriever, otherwise return the response
             message = response.choices[0].message
-            tool_calls = message.get("tool_calls")
+            tool_calls = message.get("tool_calls", None)
 
             if message.get('reasoning_content'):
                 reasoning_content = message.get('reasoning_content')
