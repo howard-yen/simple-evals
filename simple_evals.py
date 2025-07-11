@@ -337,7 +337,7 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
-        "react-web-o4-mini": ReactWebSampler(
+        "react-url-o4-mini": ReactWebSampler(
             model="azure/o4-mini",
             system_message=REACT_WEB_SYSTEM_MESSAGE,
             max_iterations=50,
@@ -353,7 +353,7 @@ def main():
         ),
 
         "qwen3-8b": LiteLLMSampler(
-            model="openai/Qwen/Qwen3-8B",
+            model="hosted_vllm/Qwen/Qwen3-8B",
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
@@ -444,6 +444,23 @@ def main():
     if args.model:
         models_chosen = args.model.split(",")
         for model_name in models_chosen:
+            if model_name.startswith("hosted_vllm-"):
+                models[model_name] = LiteLLMSampler(
+                    model=model_name.replace("hosted_vllm-", "hosted_vllm/"),
+                    max_tokens=32768,
+                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
+                )
+                continue
+            elif model_name.startswith("react_vllm-"):
+                models[model_name] = ReactWebSampler(
+                    model=model_name.replace("react_vllm-", "hosted_vllm/"),
+                    system_message=REACT_WEB_SYSTEM_MESSAGE,
+                    max_iterations=50,
+                    max_tokens=32768,
+                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
+                )
+                continue
+
             if model_name not in models:
                 print(f"Error: Model '{model_name}' not found.")
                 return

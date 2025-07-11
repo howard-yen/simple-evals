@@ -87,20 +87,24 @@ class LiteLLMSampler(SamplerBase):
                         **self.extra_kwargs,
                     )
 
-                content = response['choices'][0]['message']['content']
-                if content is None:
-                    raise ValueError("Litellm API returned empty response; retrying")
-
                 metadata = {"usage": response['usage']}
-                if response['choices'][0]['message'].get('reasoning_content') is not None:
-                    extra_convo = [self._pack_message('thinking', response['choices'][0]['message']['reasoning_content'])]
-                    metadata["extra_convo"] = extra_convo
+                message = response['choices'][0]['message']
+                content = message['content']
+
+                if content is None:
+                    if message.get('reasoning_content') is not None:
+                        content = ""
+                        extra_convo = [self._pack_message('thinking', message['reasoning_content'])]
+                        metadata["extra_convo"] = extra_convo
+                    else:
+                        raise ValueError("Litellm API returned empty response; retrying")
                 
                 return SamplerResponse(
                     response_text=content,
                     response_metadata=metadata,
                     actual_queried_message_list=message_list,
                 )
+
             except litellm.BadRequestError as e:
                 print("Bad Request Error", e)
                 return SamplerResponse(
@@ -108,6 +112,7 @@ class LiteLLMSampler(SamplerBase):
                     response_metadata={"usage": None},
                     actual_queried_message_list=message_list,
                 )
+
             except Exception as e:
                 exception_backoff = 2**trial  # expontial back off
                 exception_backoff = min(exception_backoff, 128)
