@@ -218,6 +218,9 @@ class ReactWebSampler(SamplerBase):
                                 tool_response = f"Successfully opened the url {function_args['url']}.<Content>\n{snippet}\n</Content>"
                             else:
                                 tool_response = f"Failed to open the url {function_args['url']}."
+                    
+                    else:
+                        tool_response = f"Error: Unknown tool call: {tool_call.function.name}"
 
                     tool_message = {
                         "tool_call_id": tool_call.id,
