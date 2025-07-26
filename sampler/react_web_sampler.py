@@ -18,13 +18,13 @@ SEARCH_TOOL = {
     "type": "function",
     "function": {
         "name": "search",
-        "description": "Search the web for information. This tool will return a list of urls that are relevant to the query.",
+        "description": "Search the web for information. This tool will return a list of urls with a snippet of the content in the url.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The user question or search query."
+                    "description": "The search query."
                 },
             },
             "required": [
@@ -39,8 +39,8 @@ SEARCH_TOOL = {
 VISIT_TOOL = {
     "type": "function",
     "function": {
-        "name": "open_url",
-        "description": "Open a url and optionally search for a specific query. By default, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text.",
+        "name": "visit",
+        "description": "Visit a url and optionally search for a specific query. If given an empty query, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -50,7 +50,7 @@ VISIT_TOOL = {
                 },
                 "query": {
                     "type": "string",
-                    "description": "The query to search for on the opened url. This should be the exact text that you are looking for."
+                    "description": "The query to search for in the url. The tool will perform fuzzy matching to find the part of the page that contains the highest textual similarity to the query."
                 }
             },
             "required": [
@@ -59,12 +59,12 @@ VISIT_TOOL = {
             "additionalProperties": False
         },
     }
-}   
+}
 
 REACT_WEB_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
-When using the search tool, you should think carefully about the question, decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
-The search tool will return a list of urls, and you should visit the urls that are relevant to the task. To get more information from the url, you should use the visit tool.
-After you have collected all the information you need, you may first summarize and reason about the information, and then write your final answer."""
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
+The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
+After you have collected all the information you need, you should complete the given task."""
 
 
 class ReactWebSampler(SamplerBase):
@@ -208,9 +208,9 @@ class ReactWebSampler(SamplerBase):
                             function_response = self.retriever.retrieve(**function_args)[0]
                             tool_response = self.retriever.format_results(function_response, topk=self.retriever_options.topk)
                         
-                    elif tool_call.function.name == "open_url":
+                    elif tool_call.function.name == "visit":
                         if "url" not in function_args:
-                            tool_response = f"Error: Please provide a url to open in the function arguments."
+                            tool_response = f"Error: Please provide a url to visit in the function arguments."
                         else:
                             function_response = asyncio.run(scrape_page_content_crawl4ai(function_args["url"], function_args.get("query", ""), verbose=False))
                             success, snippet, fulltext = function_response
