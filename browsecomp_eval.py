@@ -62,11 +62,13 @@ def decrypt(ciphertext_b64: str, password: str) -> str:
     decrypted = bytes(a ^ b for a, b in zip(encrypted, key))
     return decrypted.decode()
 
+# Note: option to use the local path
+LOCAL_PATH = "simple-evals/data/browse_comp_test_set.csv"
 
 class BrowseCompEval(Eval):
     def __init__(self, grader_model: SamplerBase, num_examples: int | None = None, n_repeats: int = 1, n_threads: int = 1):
         df = pandas.read_csv(
-            "https://openaipublic.blob.core.windows.net/simple-evals/browse_comp_test_set.csv"
+            LOCAL_PATH if LOCAL_PATH else "https://openaipublic.blob.core.windows.net/simple-evals/browse_comp_test_set.csv"
         )
         examples = [row.to_dict() for _, row in df.iterrows()]
         if num_examples:

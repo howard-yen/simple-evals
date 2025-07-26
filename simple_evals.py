@@ -26,8 +26,8 @@ from .sampler.chat_completion_sampler import (
 from .sampler.o_chat_completion_sampler import OChatCompletionSampler
 from .sampler.responses_sampler import ResponsesSampler, get_openai_web_search_tool
 from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS, get_anthropic_web_search_tool
-from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
-from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
+# from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
+# from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
 from .sampler.react_web_sampler import ReactWebSampler, REACT_WEB_SYSTEM_MESSAGE
@@ -280,23 +280,23 @@ def main():
             thinking_budget=30000,
             tools=[get_anthropic_web_search_tool(max_uses=5)],
         ),
-        # GPT Researcher models:
-        "gpt-researcher": GPTResearcherSampler(
-            report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher.json"),
-            system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
-        ),
-        "gpt-researcher-detailed": GPTResearcherSampler(
-            report_type="detailed_report",
-            config_path=get_config_path("configs/gpt-researcher.json"),
-            system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
-        ),
-        # SmolAgent models:
-        "hf-odr": SmolAgentSampler(
-            model="azure/o4-mini",
-            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-            verbosity_level=-1, # -1 for no logs, default is 1
-        ),
+        # # GPT Researcher models:
+        # "gpt-researcher": GPTResearcherSampler(
+        #     report_type="deep",
+        #     config_path=get_config_path("configs/gpt-researcher.json"),
+        #     system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
+        # ),
+        # "gpt-researcher-detailed": GPTResearcherSampler(
+        #     report_type="detailed_report",
+        #     config_path=get_config_path("configs/gpt-researcher.json"),
+        #     system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
+        # ),
+        # # SmolAgent models:
+        # "hf-odr": SmolAgentSampler(
+        #     model="azure/o4-mini",
+        #     system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+        #     verbosity_level=-1, # -1 for no logs, default is 1
+        # ),
 
         # Litellm models: remember to set env var for VERTEXAI_PROJECT and VERTEXAI_LOCATION
         "claude-4-sonnet": LiteLLMSampler(
@@ -347,12 +347,26 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "react-web-claude-4-sonnet": ReactWebSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
+        "react-url-o3-100": ReactWebSampler(
+            model="azure/o3",
             system_message=REACT_WEB_SYSTEM_MESSAGE,
-            max_iterations=50,
+            max_iterations=100,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-url-claude-4-sonnet-100": ReactWebSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-url-claude-4-sonnet-thinking-100": ReactWebSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed, "thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
 
         "qwen3-8b": LiteLLMSampler(
@@ -449,6 +463,7 @@ def main():
 
     grading_sampler = ChatCompletionSampler(
         model="gpt-4.1-2025-04-14",
+        base_url="http://localhost:8010/v1",
         system_message=OPENAI_SYSTEM_MESSAGE_API,
         max_tokens=2048,
     )
