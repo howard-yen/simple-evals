@@ -79,6 +79,9 @@ def main():
         "--tag", type=str, help="Tag to add to the output path in place of the date", default=""
     )
     parser.add_argument(
+        "--hf-tokenizer", type=str, help="HF Tokenizer to load, for specific settings (search-r1)", default=""
+    )
+    parser.add_argument(
         "--model_seed", type=int, help="Seed to use for the model", default=None
     )
 
@@ -365,13 +368,6 @@ def main():
             keep_reasoning_content=True,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
-        "search-r1-qwen3-8b": SearchR1Sampler(
-            model="openai/Qwen/Qwen3-8B",
-            max_tokens=32768,
-            reasoning_model=True,
-            search_endpoint="http://127.0.0.1:8001/retrieve",
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
 
         "qwen2.5-7b": LiteLLMSampler(
             model="openai/Qwen/Qwen2.5-7B",
@@ -385,12 +381,6 @@ def main():
             max_tokens=4096,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
-        "search-r1-qwen2.5-7b": SearchR1Sampler(
-            model="openai/Qwen/Qwen2.5-7B",
-            max_tokens=4096,
-            search_endpoint="http://127.0.0.1:8001/retrieve",
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
 
         "qwen2.5-7b-it": LiteLLMSampler(
             model="openai/Qwen/Qwen2.5-7B-Instruct",
@@ -401,23 +391,6 @@ def main():
             model="openai/Qwen/Qwen2.5-7B-Instruct",
             system_message=REACT_WEB_SYSTEM_MESSAGE,
             max_iterations=50,
-            max_tokens=4096,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-        "search-r1-qwen2.5-7b-it": SearchR1Sampler(
-            model="openai/Qwen/Qwen2.5-7B-Instruct",
-            max_tokens=4096,
-            search_endpoint="http://127.0.0.1:8001/retrieve",
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-
-        "search-r1-qwen2.5-7b-em-ppo": SearchR1Sampler(
-            model="openai/PeterJinGo/SearchR1-nq_hotpotqa_train-qwen2.5-7b-em-ppo",
-            max_tokens=4096,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-        "search-r1-qwen2.5-7b-it-em-ppo": SearchR1Sampler(
-            model="openai/PeterJinGo/SearchR1-nq_hotpotqa_train-qwen2.5-7b-it-em-ppo",
             max_tokens=4096,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
@@ -450,7 +423,6 @@ def main():
                     max_tokens=32768,
                     extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
                 )
-                continue
             elif model_name.startswith("react_vllm-"):
                 models[model_name] = ReactWebSampler(
                     model=model_name.replace("react_vllm-", "hosted_vllm/"),
@@ -459,7 +431,14 @@ def main():
                     max_tokens=32768,
                     extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
                 )
-                continue
+            elif model_name.startswith("search-r1-"):
+                models[model_name] = SearchR1Sampler(
+                    model=model_name.replace("search-r1-", "hosted_vllm/"),
+                    tokenizer=args.hf_tokenizer,
+                    max_tokens=32768,
+                    reasoning_model=True,
+                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
+                )
 
             if model_name not in models:
                 print(f"Error: Model '{model_name}' not found.")

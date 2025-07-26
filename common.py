@@ -419,3 +419,48 @@ def has_only_user_assistant_messages(messages: list[Message]) -> bool:
     Check if the messages only contain user and assistant messages.
     """
     return all(m["role"] in ("user", "assistant") for m in messages)
+
+
+def get_usage_dict(response_usage) -> dict[str, int | None]:
+    if response_usage is None:
+        return {
+            "input_tokens": None,
+            "input_cached_tokens": None,
+            "output_tokens": None,
+            "output_reasoning_tokens": None,
+            "total_tokens": None,
+        }
+
+    try:
+        return {
+            "input_tokens": response_usage.input_tokens,
+            "input_cached_tokens": (response_usage.input_tokens_details.cached_tokens
+            if hasattr(response_usage.input_tokens_details, "cached_tokens")
+            else response_usage.input_tokens_details["cached_tokens"])
+            if hasattr(response_usage, "input_tokens_details") and response_usage.input_tokens_details is not None
+            else None,
+            "output_tokens": response_usage.output_tokens,
+            "output_reasoning_tokens": (response_usage.output_tokens_details.reasoning_tokens
+            if hasattr(response_usage.output_tokens_details, "reasoning_tokens")
+            else response_usage.output_tokens_details["reasoning_tokens"])
+            if hasattr(response_usage, "output_tokens_details") and response_usage.output_tokens_details is not None
+            else None,
+            "total_tokens": response_usage.total_tokens,
+        }
+    except AttributeError:
+        return {
+            "input_tokens": response_usage.prompt_tokens,
+            "input_cached_tokens": (response_usage.prompt_tokens_details.cached_tokens
+            if hasattr(response_usage.prompt_tokens_details, "cached_tokens")
+            else response_usage.prompt_tokens_details["cached_tokens"])
+            if hasattr(response_usage, "prompt_tokens_details") and response_usage.prompt_tokens_details is not None
+            else None,
+            "output_tokens": response_usage.completion_tokens,
+            "output_reasoning_tokens": (response_usage.completion_tokens_details.reasoning_tokens
+            if hasattr(response_usage.completion_tokens_details, "reasoning_tokens")
+            else response_usage.completion_tokens_details["reasoning_tokens"])
+            if hasattr(response_usage, "completion_tokens_details") and response_usage.completion_tokens_details is not None
+            else None,
+            "total_tokens": response_usage.total_tokens,
+        }
+
