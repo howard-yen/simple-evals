@@ -78,7 +78,6 @@ class ReactWebSampler(SamplerBase):
         max_tokens: int=1024,
         temperature: float=1.0,
         topk: int=10,
-        keep_reasoning_content: bool=False,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
@@ -86,7 +85,6 @@ class ReactWebSampler(SamplerBase):
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
-        self.keep_reasoning_content = keep_reasoning_content
         self.extra_kwargs = extra_kwargs
 
         self.retriever_options = RetrieverOptions(

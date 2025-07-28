@@ -407,6 +407,12 @@ def main():
             max_tokens=4096,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
+
+        "kimi-k2-instruct": LiteLLMSampler(
+            model="together_ai/moonshotai/Kimi-K2-Instruct",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
     }
 
     if args.list_models:
@@ -462,7 +468,7 @@ def main():
 
     grading_sampler = ChatCompletionSampler(
         model="gpt-4.1-2025-04-14",
-        base_url="http://localhost:8010/v1",
+        # base_url="http://localhost:8010/v1",
         system_message=OPENAI_SYSTEM_MESSAGE_API,
         max_tokens=2048,
     )

@@ -94,7 +94,7 @@ class LiteLLMSampler(SamplerBase):
                 if content is None:
                     if message.get('reasoning_content') is not None:
                         content = ""
-                        extra_convo = [self._pack_message('thinking', message['reasoning_content'])]
+                        extra_convo = [self._pack_message('assistant thinking', message['reasoning_content'])]
                         metadata["extra_convo"] = extra_convo
                     else:
                         raise ValueError("Litellm API returned empty response; retrying")
