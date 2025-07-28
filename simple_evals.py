@@ -379,7 +379,6 @@ def main():
             system_message=REACT_WEB_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
-            keep_reasoning_content=True,
             extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
         ),
 

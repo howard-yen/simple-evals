@@ -150,12 +150,12 @@ class SearchR1Sampler(SamplerBase):
         iteration_count = 0
         extra_convo = []
         # for multi-round frameworks, we keep track of all usages
-        all_usages = []
+        all_usage = []
 
         while iteration_count < self.max_iterations:
             # Generate response
             output_text, usage = self._generate_with_stop(current_prompt)
-            all_usages.append(usage)
+            all_usage.append(usage)
 
             # Check if this contains a search query
             thinking = self._get_thinking(output_text)
@@ -174,7 +174,7 @@ class SearchR1Sampler(SamplerBase):
                 current_prompt += search_text
 
                 # Add to extra conversation for metadata
-                extra_convo.append(self._pack_message(f"tool call search", search_query))
+                extra_convo.append(self._pack_message(f"tool_call search", search_query))
                 extra_convo.append(self._pack_message(f"tool", search_results))
 
                 iteration_count += 1
@@ -189,9 +189,8 @@ class SearchR1Sampler(SamplerBase):
         metadata = {
             "iterations": iteration_count,
             "extra_convo": extra_convo,
-            "all_usage": all_usages,
+            "all_usage": all_usage,
         }
-        import pdb; pdb.set_trace()
 
         return SamplerResponse(
             response_text=final_response,

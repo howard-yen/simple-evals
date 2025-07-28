@@ -1,6 +1,7 @@
 import os
 import time
 import json
+from collections import defaultdict
 from typing import Any, Dict, List, Any, Optional, Union
 import copy
 import random
@@ -11,6 +12,7 @@ from retrievaltools.utils import scrape_page_content_crawl4ai
 from retrievaltools import load_retriever, RetrieverOptions
 
 from ..types import MessageList, SamplerBase, SamplerResponse
+from ..common import get_usage_dict
 
 import litellm
 
@@ -145,6 +147,8 @@ class ReactWebSampler(SamplerBase):
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         cur_iter = 0
         extra_convo = []
+        all_usages = []
+        tool_counts = defaultdict(lambda: 0)
         if self.system_message:
             message_list = [
                 self._pack_message("developer", self.system_message)
@@ -167,22 +171,22 @@ class ReactWebSampler(SamplerBase):
                 fallback = True
                 if response is None:
                     return SamplerResponse(
-                            response_text="",
-                            response_metadata={"usage": None, "fallback": True},
-                            actual_queried_message_list=original_message_list,
+                        response_text="",
+                        response_metadata={"all_usage": None, "fallback": True},
+                        actual_queried_message_list=original_message_list,
                     )
 
             # if search tool, call retriever, otherwise return the response
             message = response.choices[0].message
             tool_calls = message.get("tool_calls", None)
+            all_usages.append(get_usage_dict(response.usage))
 
             if message.get('reasoning_content'):
                 reasoning_content = message.get('reasoning_content')
                 extra_convo.append(self._pack_message("assistant thinking", reasoning_content))
-                if self.keep_reasoning_content:
-                    message_list.append({"role": "assistant", "content": "", "reasoning_content": reasoning_content})
 
             # if we reached the max iterations and we still call the tool, we fallback to not using tools
+            # i dont think this is possible anymore
             if tool_calls and cur_iter == self.max_iterations:
                 print("Fallback to not using tools")
                 response = self.generate(original_message_list)
@@ -190,16 +194,16 @@ class ReactWebSampler(SamplerBase):
                     print(f"Fallback response also failed. Returning empty response.")
                     return SamplerResponse(
                         response_text="",
-                        response_metadata={"usage": None, "fallback": True},
+                        response_metadata={"all_usage": None, "fallback": True},
                         actual_queried_message_list=original_message_list
                     )
                 
             elif tool_calls:
-                print("Using tools")
                 message_list.append(message)
                 for tool_call in tool_calls:
                     function_args = json.loads(tool_call.function.arguments)
                     print(f"Function args: {function_args}")
+                    tool_counts[tool_call.function.name] += 1
 
                     if tool_call.function.name == "search":
                         if "query" not in function_args:
@@ -230,7 +234,7 @@ class ReactWebSampler(SamplerBase):
                     }
                     
                     message_list.append(tool_message)
-                    extra_convo.append(self._pack_message(f"tool call iter {cur_iter} {tool_call.function.name}", tool_call.function.arguments))
+                    extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name} {cur_iter}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
 
             else:
@@ -240,7 +244,8 @@ class ReactWebSampler(SamplerBase):
         metadata = {
             "fallback": fallback,
             "extra_convo": extra_convo,
-            "usage": response.usage
+            "all_usage": all_usages,
+            "tool_counts": tool_counts,
         }
         message = response['choices'][0]['message']
         response_text = message['content'] if message['content'] is not None else ""
