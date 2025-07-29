@@ -26,7 +26,6 @@ class LiteLLMSampler(SamplerBase):
         temperature: float = 0.5,
         max_tokens: int = 1024,
         reasoning_model: bool = False,
-        reasoning_effort: str | None = None,
         tools: List[Dict[str, str]] | None = None,
         extra_kwargs: Dict[str, Any] = {},
     ):

@@ -30,7 +30,7 @@ from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSA
 # from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
-from .sampler.react_web_sampler import ReactWebSampler, REACT_WEB_SYSTEM_MESSAGE
+from .sampler.react_web_sampler import ReactWebSampler, DRREACT_SYSTEM_MESSAGE
 from .sampler.search_r1_sampler import SearchR1Sampler
 
 def get_config_path(relative_path):
@@ -280,6 +280,7 @@ def main():
             thinking_budget=30000,
             tools=[get_anthropic_web_search_tool(max_uses=5)],
         ),
+
         # # GPT Researcher models:
         # "gpt-researcher": GPTResearcherSampler(
         #     report_type="deep",
@@ -298,7 +299,88 @@ def main():
         #     verbosity_level=-1, # -1 for no logs, default is 1
         # ),
 
-        # Litellm models: remember to set env var for VERTEXAI_PROJECT and VERTEXAI_LOCATION
+        # React models:
+        # "react-o4-mini": ReactSampler(
+        #     model="azure/o4-mini",
+        #     max_tokens=32768,
+        #     extra_kwargs={"seed": args.model_seed}
+        # ),
+        # "react-claude-4-sonnet": ReactSampler(
+        #     model="vertex_ai/claude-sonnet-4@20250514",
+        #     max_tokens=32768,
+        #     extra_kwargs={"seed": args.model_seed}
+        # ),
+
+        "o4-mini": LiteLLMSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o4-mini-10": ReactWebSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=10,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o4-mini-20": ReactWebSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=20,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o4-mini-50": ReactWebSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o4-mini-100": ReactWebSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        
+        "o3": LiteLLMSampler(
+            model="azure/o3",
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o3-10": ReactWebSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=10,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o3-20": ReactWebSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=20,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o3-50": ReactWebSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o3-100": ReactWebSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
         "claude-4-sonnet": LiteLLMSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
@@ -306,110 +388,48 @@ def main():
             reasoning_model=True,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "vertexai-claude-3-7-sonnet": LiteLLMSampler(
-            model="vertex_ai/claude-3-7-sonnet@20250219",
-            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
-            max_tokens=32768,
+        "drreact-claude-4-sonnet-10": ReactWebSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
             reasoning_model=True,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}}
-        ),
-        # not sure why just setting the env vars doesn't work
-        "o4-mini": LiteLLMSampler(
-            model="azure/o4-mini",
+            max_iterations=10,
             max_tokens=32768,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "drreact-claude-4-sonnet-20": ReactWebSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
             reasoning_model=True,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "gpt-4.1": LiteLLMSampler(
-            model="azure/gpt-4.1",
+            max_iterations=20,
             max_tokens=32768,
-            temperature=0.5,
-            extra_kwargs={"seed": args.model_seed}
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-
-        # React models:
-        "react-o4-mini": ReactSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-claude-4-sonnet": ReactSampler(
+        "drreact-claude-4-sonnet-50": ReactWebSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "react-url-o4-mini": ReactWebSampler(
-            model="azure/o4-mini",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            reasoning_model=True,
             max_iterations=50,
             max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "react-url-o3-100": ReactWebSampler(
-            model="azure/o3",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
+        "drreact-claude-4-sonnet-100": ReactWebSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            reasoning_model=True,
             max_iterations=100,
             max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-url-claude-4-sonnet-100": ReactWebSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-url-claude-4-sonnet-thinking-100": ReactWebSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed, "thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-
-        "qwen3-8b": LiteLLMSampler(
-            model="hosted_vllm/Qwen/Qwen3-8B",
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-        "react-web-qwen3-8b": ReactWebSampler(
-            model="openai/Qwen/Qwen3-8B",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
-            max_iterations=50,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-
-        "qwen2.5-7b": LiteLLMSampler(
-            model="openai/Qwen/Qwen2.5-7B",
-            max_tokens=4096,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-        "react-web-qwen2.5-7b": ReactWebSampler(
-            model="openai/Qwen/Qwen2.5-7B",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
-            max_iterations=50,
-            max_tokens=4096,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-
-        "qwen2.5-7b-it": LiteLLMSampler(
-            model="openai/Qwen/Qwen2.5-7B-Instruct",
-            max_tokens=4096,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
-        ),
-        "react-web-qwen2.5-7b-it": ReactWebSampler(
-            model="openai/Qwen/Qwen2.5-7B-Instruct",
-            system_message=REACT_WEB_SYSTEM_MESSAGE,
-            max_iterations=50,
-            max_tokens=4096,
-            extra_kwargs={"seed": args.model_seed, "api_base": "http://localhost:8000/v1", "api_key": ""}
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
 
         "kimi-k2-instruct": LiteLLMSampler(
             model="together_ai/moonshotai/Kimi-K2-Instruct",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-kimi-k2-instruct-10": ReactWebSampler(
+            model="together_ai/moonshotai/Kimi-K2-Instruct",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
@@ -469,7 +489,7 @@ def main():
 
     grading_sampler = ChatCompletionSampler(
         model="gpt-4.1-2025-04-14",
-        # base_url="http://localhost:8010/v1",
+        base_url="http://localhost:8010/v1",
         system_message=OPENAI_SYSTEM_MESSAGE_API,
         max_tokens=2048,
     )
