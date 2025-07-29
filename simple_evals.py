@@ -443,10 +443,11 @@ def main():
                     extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
                 )
             elif model_name.startswith("react_vllm-"):
+                max_iter = int(model_name.split("-")[-1])
                 models[model_name] = ReactWebSampler(
                     model=model_name.replace("react_vllm-", "hosted_vllm/"),
                     system_message=REACT_WEB_SYSTEM_MESSAGE,
-                    max_iterations=50,
+                    max_iterations=max_iter,
                     max_tokens=32768,
                     extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
                 )

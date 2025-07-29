@@ -8,6 +8,7 @@ from openai import OpenAI
 import litellm
 
 from ..types import MessageList, SamplerBase, SamplerResponse
+from ..common import get_usage_dict
 
 # Suppress repeated Google Cloud SDK warnings
 warnings.filterwarnings("once", category=UserWarning, module="google.auth._default")
@@ -67,6 +68,7 @@ class LiteLLMSampler(SamplerBase):
         trial = 0
         while True:
             try:
+                start_time = time.time()
                 if self.reasoning_model:
                     response = litellm.completion(
                         model=self.model,
@@ -87,7 +89,7 @@ class LiteLLMSampler(SamplerBase):
                         **self.extra_kwargs,
                     )
 
-                metadata = {"usage": response['usage']}
+                metadata = {"usage": get_usage_dict(response['usage']), "latency": time.time() - start_time}
                 message = response['choices'][0]['message']
                 content = message['content']
 

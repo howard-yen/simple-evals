@@ -160,50 +160,6 @@ def calculate_score(
     return overall_score
 
 
-def get_usage_dict(response_usage) -> dict[str, int | None]:
-    if response_usage is None:
-        return {
-            "input_tokens": None,
-            "input_cached_tokens": None,
-            "output_tokens": None,
-            "output_reasoning_tokens": None,
-            "total_tokens": None,
-        }
-    
-    try:
-        return {
-            "input_tokens": response_usage.input_tokens,
-            "input_cached_tokens": (response_usage.input_tokens_details.cached_tokens
-            if hasattr(response_usage.input_tokens_details, "cached_tokens")
-            else response_usage.input_tokens_details["cached_tokens"])
-            if hasattr(response_usage, "input_tokens_details") and response_usage.input_tokens_details is not None
-            else None,
-            "output_tokens": response_usage.output_tokens,
-            "output_reasoning_tokens": (response_usage.output_tokens_details.reasoning_tokens
-            if hasattr(response_usage.output_tokens_details, "reasoning_tokens")
-            else response_usage.output_tokens_details["reasoning_tokens"])
-            if hasattr(response_usage, "output_tokens_details") and response_usage.output_tokens_details is not None
-            else None,
-            "total_tokens": response_usage.total_tokens,
-        }
-    except AttributeError:
-        return {
-            "input_tokens": response_usage.prompt_tokens,
-            "input_cached_tokens": (response_usage.prompt_tokens_details.cached_tokens
-            if hasattr(response_usage.prompt_tokens_details, "cached_tokens")
-            else response_usage.prompt_tokens_details["cached_tokens"])
-            if hasattr(response_usage, "prompt_tokens_details") and response_usage.prompt_tokens_details is not None
-            else None,
-            "output_tokens": response_usage.completion_tokens,
-            "output_reasoning_tokens": (response_usage.completion_tokens_details.reasoning_tokens
-            if hasattr(response_usage.completion_tokens_details, "reasoning_tokens")
-            else response_usage.completion_tokens_details["reasoning_tokens"])
-            if hasattr(response_usage, "completion_tokens_details") and response_usage.completion_tokens_details is not None
-            else None,
-            "total_tokens": response_usage.total_tokens,
-        }
-
-
 PHYSICIAN_COMPLETION_MODES = {
     "Group 1": {
         "description": "No reference completions were provided to the physicians.",
@@ -501,7 +457,7 @@ class HealthBenchEval(Eval):
 
             metadata= {
                 "score": score,
-                "usage": get_usage_dict(response_usage),
+                "usage": response_usage,
                 "rubric_items": rubric_items_with_grades,
                 "prompt": actual_queried_prompt_messages,
                 "completion": model_response,

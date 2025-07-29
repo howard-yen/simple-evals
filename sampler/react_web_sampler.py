@@ -8,60 +8,12 @@ import random
 import requests
 import asyncio
 
-from retrievaltools.utils import scrape_page_content_crawl4ai
-from retrievaltools import load_retriever, RetrieverOptions
-
 from ..types import MessageList, SamplerBase, SamplerResponse
 from ..common import get_usage_dict
+from ..tools.search_utils import WebSearchTool, SEARCH_TOOL, VISIT_TOOL
 
 import litellm
 
-SEARCH_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "search",
-        "description": "Search the web for information. This tool will return a list of urls with a snippet of the content in the url.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The search query."
-                },
-            },
-            "required": [
-                "query",
-            ],
-            "additionalProperties": False
-        },
-        "strict": True
-    }
-}
-
-VISIT_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "visit",
-        "description": "Visit a url and optionally search for a specific query. If given an empty query, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "url": {
-                    "type": "string",
-                    "description": "The url to open."
-                },
-                "query": {
-                    "type": "string",
-                    "description": "The query to search for in the url. The tool will perform fuzzy matching to find the part of the page that contains the highest textual similarity to the query."
-                }
-            },
-            "required": [
-                "url",
-            ],
-            "additionalProperties": False
-        },
-    }
-}
 
 REACT_WEB_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
 When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
@@ -86,18 +38,7 @@ class ReactWebSampler(SamplerBase):
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.extra_kwargs = extra_kwargs
-
-        self.retriever_options = RetrieverOptions(
-            retriever_type="web",
-            include_corpus=False,
-            port=8000,
-            topk=topk,
-            use_cache=False,
-            web_scraping="none",
-            verbose=False,
-        )
-        self.retriever = load_retriever(self.retriever_options)
-
+        self.web_search_tool = WebSearchTool(topk=topk)
 
     def _pack_message(self, role, content):
         return {"role": str(role), "content": content}
@@ -153,6 +94,7 @@ class ReactWebSampler(SamplerBase):
             ] + message_list
         original_message_list = copy.deepcopy(message_list)
         
+        start_time = time.time()
         while cur_iter < self.max_iterations:
             cur_iter += 1
             print(f"Iteration {cur_iter}\n")
@@ -174,7 +116,6 @@ class ReactWebSampler(SamplerBase):
                         actual_queried_message_list=original_message_list,
                     )
 
-            # if search tool, call retriever, otherwise return the response
             message = response.choices[0].message
             tool_calls = message.get("tool_calls", None)
             all_usages.append(get_usage_dict(response.usage))
@@ -183,20 +124,7 @@ class ReactWebSampler(SamplerBase):
                 reasoning_content = message.get('reasoning_content')
                 extra_convo.append(self._pack_message("assistant thinking", reasoning_content))
 
-            # if we reached the max iterations and we still call the tool, we fallback to not using tools
-            # i dont think this is possible anymore
-            if tool_calls and cur_iter == self.max_iterations:
-                print("Fallback to not using tools")
-                response = self.generate(original_message_list)
-                if response is None:
-                    print(f"Fallback response also failed. Returning empty response.")
-                    return SamplerResponse(
-                        response_text="",
-                        response_metadata={"all_usage": None, "fallback": True},
-                        actual_queried_message_list=original_message_list
-                    )
-                
-            elif tool_calls:
+            if tool_calls:
                 message_list.append(message)
                 for tool_call in tool_calls:
                     function_args = json.loads(tool_call.function.arguments)
@@ -207,22 +135,16 @@ class ReactWebSampler(SamplerBase):
                         if "query" not in function_args:
                             tool_response = f"Error: Please provide a query to search for in the function arguments."
                         else:
-                            function_response = self.retriever.retrieve(**function_args)[0]
-                            tool_response = self.retriever.format_results(function_response, topk=self.retriever_options.topk)
+                            tool_response = self.web_search_tool.search(function_args["query"])
                         
                     elif tool_call.function.name == "visit":
                         if "url" not in function_args:
                             tool_response = f"Error: Please provide a url to visit in the function arguments."
                         else:
-                            function_response = asyncio.run(scrape_page_content_crawl4ai(function_args["url"], function_args.get("query", ""), verbose=False))
-                            success, snippet, fulltext = function_response
-                            if success:
-                                tool_response = f"Successfully opened the url {function_args['url']}.<Content>\n{snippet}\n</Content>"
-                            else:
-                                tool_response = f"Failed to open the url {function_args['url']}."
+                            tool_response = self.web_search_tool.open_url(function_args["url"], function_args.get("query", ""))
                     
                     else:
-                        tool_response = f"Error: Unknown tool call: {tool_call.function.name}"
+                        tool_response = f"Error: Unknown tool: {tool_call.function.name}"
 
                     tool_message = {
                         "tool_call_id": tool_call.id,
@@ -239,11 +161,15 @@ class ReactWebSampler(SamplerBase):
                 print("No tools used")
                 break
 
+        end_time = time.time()
+        print(f"Time taken: {end_time - start_time} seconds")
+
         metadata = {
             "fallback": fallback,
             "extra_convo": extra_convo,
             "all_usage": all_usages,
             "tool_counts": tool_counts,
+            "latency": end_time - start_time,
         }
         message = response['choices'][0]['message']
         response_text = message['content'] if message['content'] is not None else ""

@@ -6,6 +6,7 @@ import openai
 from openai import OpenAI
 
 from ..types import MessageList, SamplerBase, SamplerResponse
+from ..common import get_usage_dict
 
 
 # https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses
@@ -71,6 +72,7 @@ class ResponsesSampler(SamplerBase):
         trial = 0
         while True:
             try:
+                start_time = time.time()
                 if self.reasoning_model:
                     reasoning = (
                         {"effort": self.reasoning_effort}
@@ -93,7 +95,7 @@ class ResponsesSampler(SamplerBase):
                         tools=self.tools,
                     )
 
-                metadata = {"usage": response.usage}
+                metadata = {"usage": get_usage_dict(response.usage), "latency": time.time() - start_time}
                 if len(response.output_text) > 1:
                     extra_convo = []
                     for o in response.output:

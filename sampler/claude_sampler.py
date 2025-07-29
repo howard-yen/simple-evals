@@ -6,6 +6,7 @@ import anthropic
 from typing import Dict, List, Any
 from ..types import MessageList, SamplerBase, SamplerResponse
 from .. import common
+from ..common import get_usage_dict
 
 
 def get_anthropic_web_search_tool(max_uses: int = 5) -> List[Dict[str, Any]]:
@@ -158,6 +159,7 @@ class ClaudeCompletionSampler(SamplerBase):
         
         while True:
             try:
+                start_time = time.time()
                 if not common.has_only_user_assistant_messages(message_list):
                     raise ValueError(f"Claude sampler only supports user and assistant messages, got {message_list}")
                 if self.system_message:
@@ -182,7 +184,7 @@ class ClaudeCompletionSampler(SamplerBase):
                     )
                     claude_input_messages = message_list
                 
-                metadata = {}
+                metadata = {"usage": get_usage_dict(response_message.usage), "latency": time.time() - start_time}
                 extra_convo = []
                 
                 # Group consecutive text blocks, process others
