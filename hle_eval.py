@@ -176,7 +176,6 @@ class HLEEval(Eval):
             )
             convo = actual_queried_prompt_messages + model_response
             grade_result["id"] = row["id"]
-            sampler_response.response_metadata.pop("usage", None)
             grade_result["response_metadata"] = sampler_response.response_metadata
             
             return SingleEvalResult(

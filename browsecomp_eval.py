@@ -141,7 +141,6 @@ class BrowseCompEval(Eval):
             )
             convo = actual_queried_prompt_messages + model_response
             grade_result["response_text"] = response_text
-            sampler_response.response_metadata.pop("usage", None)
             grade_result["response_metadata"] = sampler_response.response_metadata
 
             grade_result["question"] = problem

@@ -26,12 +26,14 @@ from .sampler.chat_completion_sampler import (
 from .sampler.o_chat_completion_sampler import OChatCompletionSampler
 from .sampler.responses_sampler import ResponsesSampler, get_openai_web_search_tool
 from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSAGE_LMSYS, get_anthropic_web_search_tool
-# from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
-# from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
+from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
+from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
-from .sampler.react_web_sampler import ReactWebSampler, DRREACT_SYSTEM_MESSAGE
+from .sampler.drreact_sampler import DrReactSampler, DRREACT_SYSTEM_MESSAGE
 from .sampler.search_r1_sampler import SearchR1Sampler
+from .sampler.search_r1_chat_sampler import SearchR1ChatSampler
+from .sampler.search_o1_sampler import SearchO1ChatSampler
 
 def get_config_path(relative_path):
     """Get absolute path to a config file relative to this script's location."""
@@ -282,22 +284,21 @@ def main():
         ),
 
         # # GPT Researcher models:
-        # "gpt-researcher": GPTResearcherSampler(
-        #     report_type="deep",
-        #     config_path=get_config_path("configs/gpt-researcher.json"),
-        #     system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
-        # ),
+        "gpt-researcher-o4-mini": GPTResearcherSampler(
+            report_type="deep",
+            config_path=get_config_path("configs/gpt-researcher-o4-mini.json"),
+        ),
         # "gpt-researcher-detailed": GPTResearcherSampler(
         #     report_type="detailed_report",
         #     config_path=get_config_path("configs/gpt-researcher.json"),
         #     system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
         # ),
-        # # SmolAgent models:
-        # "hf-odr": SmolAgentSampler(
-        #     model="azure/o4-mini",
-        #     system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-        #     verbosity_level=-1, # -1 for no logs, default is 1
-        # ),
+        # SmolAgent models:
+        "hf-odr": SmolAgentSampler(
+            model="azure/o4-mini",
+            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+            verbosity_level=1, # -1 for no logs, default is 1
+        ),
 
         # React models:
         # "react-o4-mini": ReactSampler(
@@ -317,28 +318,28 @@ def main():
             reasoning_model=True,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o4-mini-10": ReactWebSampler(
+        "drreact-o4-mini-10": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o4-mini-20": ReactWebSampler(
+        "drreact-o4-mini-20": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=20,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o4-mini-50": ReactWebSampler(
+        "drreact-o4-mini-50": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o4-mini-100": ReactWebSampler(
+        "drreact-o4-mini-100": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=100,
@@ -352,34 +353,47 @@ def main():
             reasoning_model=True,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-10": ReactWebSampler(
+        "drreact-o3-10": DrReactSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-20": ReactWebSampler(
+        "drreact-o3-20": DrReactSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=20,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-50": ReactWebSampler(
+        "drreact-o3-50": DrReactSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-100": ReactWebSampler(
+        "drreact-o3-100": DrReactSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "search-r1-o3": SearchR1ChatSampler(
+            model="azure/o3",
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-o3": SearchO1ChatSampler(
+            model="azure/o3",
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
 
         "claude-4-sonnet": LiteLLMSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
@@ -388,34 +402,30 @@ def main():
             reasoning_model=True,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-claude-4-sonnet-10": ReactWebSampler(
+        "drreact-claude-4-sonnet-10": DrReactSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            reasoning_model=True,
             max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-claude-4-sonnet-20": ReactWebSampler(
+        "drreact-claude-4-sonnet-20": DrReactSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            reasoning_model=True,
             max_iterations=20,
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-claude-4-sonnet-50": ReactWebSampler(
+        "drreact-claude-4-sonnet-50": DrReactSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            reasoning_model=True,
             max_iterations=50,
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-claude-4-sonnet-100": ReactWebSampler(
+        "drreact-claude-4-sonnet-100": DrReactSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            reasoning_model=True,
             max_iterations=100,
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
@@ -426,10 +436,17 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-kimi-k2-instruct-10": ReactWebSampler(
+        "drreact-kimi-k2-instruct-10": DrReactSampler(
             model="together_ai/moonshotai/Kimi-K2-Instruct",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=10,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-kimi-k2-instruct-100": DrReactSampler(
+            model="together_ai/moonshotai/Kimi-K2-Instruct",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
@@ -462,16 +479,23 @@ def main():
                     max_tokens=32768,
                     extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
                 )
-            elif model_name.startswith("react_vllm-"):
-                max_iter = int(model_name.split("-")[-1])
-                models[model_name] = ReactWebSampler(
-                    model=model_name.replace("react_vllm-", "hosted_vllm/"),
-                    system_message=REACT_WEB_SYSTEM_MESSAGE,
-                    max_iterations=max_iter,
+            elif model_name.startswith("drreact_vllm-"):
+                max_iter = model_name.split("-")[-1]
+                models[model_name] = DrReactSampler(
+                    model=model_name.replace("drreact_vllm-", "hosted_vllm/")[:-len(max_iter)-1],
+                    system_message=DRREACT_SYSTEM_MESSAGE,
+                    max_iterations=int(max_iter),
                     max_tokens=32768,
                     extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
                 )
-            elif model_name.startswith("search-r1-"):
+            elif model_name.startswith("hosted-search-o1-"):
+                models[model_name] = SearchO1ChatSampler(
+                    model=model_name.replace("hosted-search-o1-", "hosted_vllm/"),
+                    max_tokens=32768,
+                    reasoning_model=True,
+                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
+                )
+            elif model_name.startswith("hosted-search-r1-"):
                 models[model_name] = SearchR1Sampler(
                     model=model_name.replace("search-r1-", "hosted_vllm/"),
                     tokenizer=args.hf_tokenizer,
@@ -489,7 +513,7 @@ def main():
 
     grading_sampler = ChatCompletionSampler(
         model="gpt-4.1-2025-04-14",
-        base_url="http://localhost:8010/v1",
+        # base_url="http://localhost:8010/v1",
         system_message=OPENAI_SYSTEM_MESSAGE_API,
         max_tokens=2048,
     )

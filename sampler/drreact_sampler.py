@@ -16,12 +16,12 @@ import litellm
 
 
 DRREACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
-When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
 The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
 After you have collected all the information you need, you should complete the given task."""
 
 
-class ReactWebSampler(SamplerBase):
+class DrReactSampler(SamplerBase):
     def __init__(
         self, 
         model: str, 
@@ -88,13 +88,14 @@ class ReactWebSampler(SamplerBase):
         extra_convo = []
         all_usages = []
         tool_counts = defaultdict(lambda: 0)
+        generation_time = 0
+        tool_time = 0
         if self.system_message:
             message_list = [
                 self._pack_message("developer", self.system_message)
             ] + message_list
         original_message_list = copy.deepcopy(message_list)
         
-        start_time = time.time()
         while cur_iter < self.max_iterations:
             cur_iter += 1
             print(f"Iteration {cur_iter}\n")
@@ -109,6 +110,8 @@ class ReactWebSampler(SamplerBase):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
                 fallback = True
+                generation_time = response._response_ms*1000
+                tool_time = 0
                 if response is None:
                     return SamplerResponse(
                         response_text="",
@@ -119,6 +122,7 @@ class ReactWebSampler(SamplerBase):
             message = response.choices[0].message
             tool_calls = message.get("tool_calls", None)
             all_usages.append(get_usage_dict(response.usage))
+            generation_time += response._response_ms*1000
 
             if message.get('reasoning_content'):
                 reasoning_content = message.get('reasoning_content')
@@ -126,6 +130,7 @@ class ReactWebSampler(SamplerBase):
 
             if tool_calls:
                 message_list.append(message)
+                start_time = time.time()
                 for tool_call in tool_calls:
                     function_args = json.loads(tool_call.function.arguments)
                     print(f"Function args: {function_args}")
@@ -156,20 +161,20 @@ class ReactWebSampler(SamplerBase):
                     message_list.append(tool_message)
                     extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name} {cur_iter}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
+                tool_time += time.time() - start_time
 
             else:
                 print("No tools used")
                 break
-
-        end_time = time.time()
-        print(f"Time taken: {end_time - start_time} seconds")
 
         metadata = {
             "fallback": fallback,
             "extra_convo": extra_convo,
             "all_usage": all_usages,
             "tool_counts": tool_counts,
-            "latency": end_time - start_time,
+            "tool_time": tool_time,
+            "generation_time": generation_time,
+            "latency": generation_time + tool_time,
         }
         message = response['choices'][0]['message']
         response_text = message['content'] if message['content'] is not None else ""

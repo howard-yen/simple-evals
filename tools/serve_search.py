@@ -5,11 +5,11 @@ import argparse
 from functools import lru_cache
 import time
 import asyncio
+from typing import Dict, List, Tuple
 
 import uvicorn 
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Tuple
 from urllib.parse import urlparse
 from rouge_score import rouge_scorer
 from diskcache import Cache
@@ -27,6 +27,7 @@ cache = Cache()
 
 class SearchRequest(BaseModel):
     query: str
+    topk: int = 10
 
 class OpenUrlRequest(BaseModel):
     url: str
@@ -122,17 +123,13 @@ async def scrape_html(url: str, snippet: str | None = None, num_characters: int 
 MAX_RETRIES = 3
 INITIAL_RETRY_DELAY = 0.2
 
-@lru_cache(maxsize=2048)
-@cache.memoize(typed=True, expire=1e6, tag="search")
-def _cached_search(query: str) -> str:
-    """Cached search function that takes hashable parameters."""
-    url = "https://google.serper.dev/search"
-    headers = {
-        "X-API-KEY": os.environ["SERPER_API_KEY"],
-        'Content-Type': 'application/json'
-    }
 
-    payload = json.dumps({"q": query, "num": 10})
+@lru_cache(maxsize=2048)
+@cache.memoize(typed=True, expire=1e6, tag="serper")
+def serper_search(query: str, topk: int = 10) -> List[Dict]:
+    url = "https://google.serper.dev/search"
+    headers = {"X-API-KEY": os.environ["SERPER_API_KEY"], 'Content-Type': 'application/json'}
+    payload = json.dumps({"q": query, "num": topk})
 
     for attempt in range(MAX_RETRIES):
         try: 
@@ -144,9 +141,9 @@ def _cached_search(query: str) -> str:
                 time.sleep(delay)
                 continue
             else:
-                return f"Failed to search the query {query}.\nError: {str(e)}"
+                raise e
         except Exception as e:
-            return f"Failed to search the query {query}.\nError: {str(e)}"
+            raise e
         
         if response.status_code in [408, 500, 502, 503, 504]:
             if attempt < MAX_RETRIES - 1:
@@ -154,18 +151,124 @@ def _cached_search(query: str) -> str:
                 time.sleep(delay)
                 continue
             else:
-                return f"Failed to search the query {query}.\nError: {response.text}"
+                raise Exception(response.text)
+
+    response = response.json()
+    return response
+
+
+@lru_cache(maxsize=2048)
+def _cached_search(query: str, topk: int = 10) -> str:
+    """Cached search function that takes hashable parameters."""
+    try:
+        response = serper_search(query, topk=topk)
+    except Exception as e:
+        return f"Failed to search for query {query}.\nError: {str(e)}"
 
     keys = ["title", "link", "snippet"]
     template = "<Search Result {position}>\n<Title: {title}>\n<URL: {link}>\n{snippet}\n</Search Result {position}>"
 
-    response = response.json()
     results = response["organic"]
     results = [r for r in results if all(k in r for k in keys) and all(not isinstance(r[k], str) or len(r[k]) > 0 for k in keys)][:10]
     results = [{**r, "position": i+1} for i, r in enumerate(results)]
     output = "\n\n".join([template.format(**r) for r in results])
     output = f"The search engine returned {len(results)} results:\n\n" + output
     return output
+
+
+@lru_cache(maxsize=2048)
+def _cached_search_r1(query: str, topk: int = 10) -> str:
+    """Cached search function that takes hashable parameters."""
+    # https://github.com/PeterGriffinJin/Search-R1/blob/main/search_r1/search/serp_search_server.py
+
+    def _process_result(search_result: Dict):
+        results = []
+
+        # Process answer box if available
+        answer_box = search_result.get('answerBox', {})
+        if answer_box:
+            title = answer_box.get('title', 'No title.')
+            answer = answer_box.get('answer', 'No answer available.')
+            snippet = answer_box.get('snippet', '')
+            content = f'"{title}"\n{answer}'
+            if snippet:
+                content += f'\n{snippet}'
+            results.append({
+                'document': {"contents": content},
+            })
+
+        # Process knowledge graph if available
+        knowledge_graph = search_result.get('knowledgeGraph', {})
+        if knowledge_graph:
+            title = knowledge_graph.get('title', 'No title.')
+            description = knowledge_graph.get('description', 'No description available.')
+            results.append({
+                'document': {"contents": f'"{title}"\n{description}'},
+            })
+
+        # Process organic results
+        organic_results = search_result.get('organic', [])
+        for _, result in enumerate(organic_results[:topk]):
+            title = result.get('title', 'No title.')
+            snippet = result.get('snippet', 'No snippet available.')
+            results.append({
+                'document': {"contents": f'"{title}"\n{snippet}'},
+            })
+
+        # Process people also ask if available
+        people_also_ask = search_result.get('peopleAlsoAsk', [])
+        for _, result in enumerate(people_also_ask[:topk]):
+            question = result.get('question', 'No question.')
+            snippet = result.get('snippet', 'No snippet available.')
+            results.append({
+                'document': {"contents": f'"{question}"\n{snippet}'},
+            })
+
+        return results
+
+    try:
+        response = serper_search(query, topk=topk)
+    except Exception as e:
+        return f"Search error: {str(e)}"
+
+    results = _process_result(response)
+
+    def _passages2string(retrieval_result):
+        format_reference = ''
+        for idx, doc_item in enumerate(retrieval_result):
+            content = doc_item['document']['contents']
+            title = content.split("\n")[0]
+            text = "\n".join(content.split("\n")[1:])
+            format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
+        return format_reference
+    
+    output = _passages2string(results)
+    return output
+
+
+@lru_cache(maxsize=2048)
+def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
+    # adapted from https://github.com/sunnynexus/Search-o1/blob/main/scripts/bing_search.py
+    try:
+        response = serper_search(query, topk=topk)
+    except Exception as e:
+        return f"Search error: {str(e)}"
+    
+    useful_info = []
+    for i, result in enumerate(response['organic']):
+        info = {
+            'id': i + 1,  # Increment i for easier subsequent operations
+            'title': result.get('title', ''),
+            'url': result.get('link', ''),
+            'site_name': result.get('source', ''),
+            'date': result.get('date', ''),
+            'snippet': result.get('snippet', ''),  # Remove HTML tags
+            # Add context content to the information
+            'context': ''  # Reserved field to be filled later
+        }
+        useful_info.append(info)
+
+    return useful_info
 
 
 @lru_cache(maxsize=2048)
@@ -211,7 +314,7 @@ app = FastAPI()
 @app.post("/search")
 def search(request: SearchRequest):
     print(f"Search query: {request.query}")
-    output = _cached_search(request.query)
+    output = _cached_search(request.query, topk=request.topk)
     return {"output": output}
 
 
@@ -220,6 +323,45 @@ def open_url(request: OpenUrlRequest):
     print(f"Open url: {request.url} with query: {request.query}")
     output = _cached_open_url(request.url, request.query)
     return {'output': output}
+
+
+@app.post("/search_r1")
+def search_r1_search(request: SearchRequest):
+    print(f"Search query: {request.query}")
+    output = _cached_search_r1(request.query, topk=request.topk)
+    return {"output": output}
+
+
+@app.post("/search_o1")
+def search_o1_search(request: SearchRequest):
+    # returns all the formatted documents
+    from search_o1_utils import fetch_page_content, extract_snippet_with_context
+    print(f"Search query: {request.query}")
+    output = _cached_search_o1(request.query, topk=request.topk)
+
+    # after getting the output, search o1 always fetches all the content of the urls
+    urls = [info['url'] for info in output]
+    fetched_contents = fetch_page_content(urls, use_jina=False, jina_api_key=None)
+
+    formatted_documnets = ""
+    for i, info in enumerate(output):
+        url = info['url']
+        raw_context = fetched_contents.get(url, '')
+        info['snippet'] = info['snippet'].replace('<b>','').replace('</b>','')
+        # default is 3000 chars in search o1
+        success, filtered_context = extract_snippet_with_context(raw_context, info['snippet'], context_chars=3000)
+        if success:
+            context = filtered_context
+        else:
+            context = raw_context[:3000*2]
+
+        info['context'] = context
+        formatted_documnets += f"**Web Page {i + 1}:**\n"
+        formatted_documnets += json.dumps(info, ensure_ascii=False, indent=2) + "\n"
+
+    output = formatted_documnets
+
+    return {"output": output}
 
 
 if __name__ == "__main__":

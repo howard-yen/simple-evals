@@ -54,12 +54,12 @@ class WebSearchTool():
         self.topk = topk
         self.url = f"http://localhost:{port}"
 
-    def search(self, query: str) -> str:
+    def search(self, query: str, topk: int = 10) -> str:
         """Search the web for information. This tool will return a list of urls that are relevant to the query."""
         if not query or not query.strip():
             return json.dumps({"error": "Please provide a query to search for."})
 
-        payload = json.dumps({"query": query})
+        payload = json.dumps({"query": query, "topk": topk})
         response = requests.post(self.url + "/search", data=payload)
         return response.json()['output']
 
@@ -71,4 +71,22 @@ class WebSearchTool():
         payload = {"url": url, "query": query}
         payload = json.dumps(payload)
         response = requests.post(self.url + "/open_url", data=payload)
+        return response.json()['output']
+
+    def search_r1(self, query: str, topk: int = 10) -> str:
+        """Search the web for information. Following search-r1's format."""
+        if not query or not query.strip():
+            return "Search error: Please provide a query to search for."
+
+        payload = json.dumps({"query": query, "topk": topk})
+        response = requests.post(self.url + "/search_r1", data=payload)
+        return response.json()['output']
+
+    def search_o1(self, query: str, topk: int = 10) -> str:
+        """Search the web for information. Following search-o1's format."""
+        if not query or not query.strip():
+            return "Search error: Please provide a query to search for."
+
+        payload = json.dumps({"query": query, "topk": topk})
+        response = requests.post(self.url + "/search_o1", data=payload)
         return response.json()['output']

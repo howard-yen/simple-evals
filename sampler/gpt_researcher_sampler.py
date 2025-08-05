@@ -29,10 +29,12 @@ class GPTResearcherSampler(SamplerBase):
         report_type: str = "deep",
         config_path: str | None = None,
         system_message: str | None = None,
+        verbose: bool = False,
     ):
         self.report_type = report_type
         self.config_path = config_path
         self.system_message = system_message
+        self.verbose = verbose
 
     def _pack_message(self, role: str, content: Any) -> dict[str, Any]:
         return {"role": role, "content": content}
@@ -45,6 +47,7 @@ class GPTResearcherSampler(SamplerBase):
             "query": question,
             "report_type": self.report_type,
             "websocket": logs_handler,
+            "verbose": self.verbose,
         }
         
         if self.config_path:
@@ -98,7 +101,9 @@ class GPTResearcherSampler(SamplerBase):
             try:
                 # Run async research in sync context
                 research_results = asyncio.run(self._get_report(question))
-                extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in research_results["logs"] if x['type'] == "logs"]
+                logs = research_results["logs"]
+                extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in logs if x['type'] == "logs"]
+                costs = [x for x in logs if x['type'] == "cost"]
 
                 return SamplerResponse(
                     response_text=research_results["report"],
@@ -107,10 +112,12 @@ class GPTResearcherSampler(SamplerBase):
                         "urls": research_results["urls"],
                         "research_data": research_results["research_data"],
                         "extra_convo": extra_convo,
-                        "costs": research_results["costs"],
+                        "costs": costs,
+                        "logs": logs,
                     },
                     actual_queried_message_list=message_list,
                 )
+
             except Exception as e:
                 exception_backoff = 2**trial  # exponential back off
                 print(

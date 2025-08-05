@@ -67,14 +67,13 @@ class LiteLLMSampler(SamplerBase):
         trial = 0
         while True:
             try:
-                start_time = time.time()
                 if self.reasoning_model:
                     response = litellm.completion(
                         model=self.model,
                         messages=message_list,
                         max_tokens=self.max_tokens,
                         tools=self.tools,
-                        timeout=7200,
+                        timeout=3600,
                         **self.extra_kwargs,
                     )
                 else:
@@ -84,11 +83,11 @@ class LiteLLMSampler(SamplerBase):
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
                         tools=self.tools,
-                        timeout=7200,
+                        timeout=3600,
                         **self.extra_kwargs,
                     )
 
-                metadata = {"usage": get_usage_dict(response['usage']), "latency": time.time() - start_time}
+                metadata = {"usage": get_usage_dict(response['usage']), "latency": response._response_ms*1000}
                 message = response['choices'][0]['message']
                 content = message['content']
 

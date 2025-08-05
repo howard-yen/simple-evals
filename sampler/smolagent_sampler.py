@@ -3,8 +3,6 @@ import os
 import time
 from typing import Any, Dict, Optional
 
-import openai
-from openai import OpenAI
 from huggingface_hub import login
 
 from .smolagents_scripts.text_inspector_tool import TextInspectorTool
@@ -25,8 +23,10 @@ from smolagents import (
     LiteLLMModel,
     ToolCallingAgent,
 )
+from smolagents.memory import MemoryStep
 
 from ..types import MessageList, SamplerBase, SamplerResponse
+from ..common import get_usage_dict
 
 SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE = """
 You are a helpful assistant.
@@ -66,9 +66,6 @@ class SmolAgentSampler(SamplerBase):
         timeout: int = 300,
         downloads_folder: str = "downloads_folder",
     ):
-        self.api_key_name = "HF_TOKEN"
-        assert os.environ.get("HF_TOKEN"), "Please set HF_TOKEN"
-        
         # Model configuration
         self.model = model
         self.system_message = system_message
@@ -90,7 +87,7 @@ class SmolAgentSampler(SamplerBase):
             self._load_config(config_path)
         
         # Initialize HuggingFace login
-        login(os.environ.get("HF_TOKEN"))
+        # login(os.environ.get("HF_TOKEN"))
         
         # Setup browser configuration
         self._setup_browser_config()
@@ -119,7 +116,6 @@ class SmolAgentSampler(SamplerBase):
                 "headers": {"User-Agent": user_agent},
                 "timeout": self.timeout,
             },
-            "serpapi_key": os.getenv("SERPAPI_API_KEY"),
         }
         
         # Create downloads folder
@@ -135,6 +131,15 @@ class SmolAgentSampler(SamplerBase):
             "max_completion_tokens": self.max_completion_tokens,
         }
         model = LiteLLMModel(**model_params)
+
+        browser_metadata = {"all_usage": [], "tool_calls": []}
+        manager_metadata = {"all_usage": [], "tool_calls": []}
+        def tracking_callback(memory_step, agent, metadata):
+            usage = get_usage_dict(memory_step.token_usage)
+            usage['step_type'] = str(type(memory_step))
+            metadata['all_usage'].append(usage)
+            if hasattr(memory_step, 'tool_calls'):
+                metadata['tool_calls'].extend([x.dict() for x in memory_step.tool_calls])
 
         # Setup browser and web tools
         browser = SimpleTextBrowser(**self.browser_config)
@@ -164,6 +169,7 @@ class SmolAgentSampler(SamplerBase):
         Your request must be a real sentence, not a google search! Like "Find me this information (...)" rather than a few keywords.
         """,
             provide_run_summary=True,
+            step_callbacks={MemoryStep: [lambda memory_step, agent: tracking_callback(memory_step, agent, browser_metadata)]},
         )
         
         # Add custom prompt template
@@ -181,9 +187,10 @@ class SmolAgentSampler(SamplerBase):
             planning_interval=self.planning_interval,
             managed_agents=[text_webbrowser_agent],
             return_full_result=True,
+            step_callbacks={MemoryStep: [lambda memory_step, agent: tracking_callback(memory_step, agent, manager_metadata)]},
         )
 
-        return manager_agent
+        return manager_agent, {"browser_metadata": browser_metadata, "manager_metadata": manager_metadata}
 
     def _pack_message(self, role: str, content: Any) -> dict[str, Any]:
         """Pack message in the expected format"""
@@ -193,8 +200,6 @@ class SmolAgentSampler(SamplerBase):
         """Execute the agent with proper error handling and retry logic"""
         # The current agent does not support parallel calls as the memory and steps are shared.
         # For each call, we need to create a new agent.
-        agent = self._create_agent()
-        
         if self.system_message:
             message_list = [
                 self._pack_message("system", self.system_message)
@@ -216,6 +221,7 @@ class SmolAgentSampler(SamplerBase):
             user_query = "\n\n".join(messages)
 
         while trial < max_retries:
+            agent, metadata = self._create_agent()
             try:
                 # Run the agent
                 result = agent.run(user_query)
@@ -234,23 +240,27 @@ class SmolAgentSampler(SamplerBase):
                 # the first message is just the task, which appears again in the second message
                 for message in messages[1:]:
                     history.append({
-                        "input": message['model_input_messages'],
+                        "input": [
+                            {"role": x['role'], "content": "\n".join([y["text"] for y in x['content']])} if isinstance(x, dict) else {"role": x.role, "content": "\n".join([y["text"] for y in x.content])}
+                            for x in message['model_input_messages']
+                        ],
                         "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']}
                     })
                 extra_convo = history[-1]['input']
-                extra_convo = [{"role": x["role"], "content": "\n".join([y["text"] for y in x["content"]])} for x in extra_convo]
-                
+               
                 return SamplerResponse(
                     response_text=response_text,
                     response_metadata={
                         "extra_convo": extra_convo,
                         "memory": history,
-                        "usage": result.token_usage,
+                        "latency": result.timing.duration,
+                        **metadata,
                     },
                     actual_queried_message_list=message_list,
                 )
                 
             except Exception as e:
+                raise e
                 trial += 1
                 exception_backoff = 2 ** trial
                 print(
