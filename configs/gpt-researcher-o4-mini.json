@@ -1,0 +1,6 @@
+{
+    "RETRIEVER": "serper",
+    "FAST_LLM": "azure_openai:o4-mini",
+    "SMART_LLM": "azure_openai:o4-mini",
+    "STRATEGIC_LLM": "azure_openai:o4-mini"
+}
