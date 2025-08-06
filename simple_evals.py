@@ -283,34 +283,6 @@ def main():
             tools=[get_anthropic_web_search_tool(max_uses=5)],
         ),
 
-        # # GPT Researcher models:
-        "gpt-researcher-o4-mini": GPTResearcherSampler(
-            report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher-o4-mini.json"),
-        ),
-        # "gpt-researcher-detailed": GPTResearcherSampler(
-        #     report_type="detailed_report",
-        #     config_path=get_config_path("configs/gpt-researcher.json"),
-        #     system_message=GPT_RESEARCHER_SYSTEM_MESSAGE,
-        # ),
-        # SmolAgent models:
-        "hf-odr": SmolAgentSampler(
-            model="azure/o4-mini",
-            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-            verbosity_level=1, # -1 for no logs, default is 1
-        ),
-
-        # React models:
-        # "react-o4-mini": ReactSampler(
-        #     model="azure/o4-mini",
-        #     max_tokens=32768,
-        #     extra_kwargs={"seed": args.model_seed}
-        # ),
-        # "react-claude-4-sonnet": ReactSampler(
-        #     model="vertex_ai/claude-sonnet-4@20250514",
-        #     max_tokens=32768,
-        #     extra_kwargs={"seed": args.model_seed}
-        # ),
 
         "o4-mini": LiteLLMSampler(
             model="azure/o4-mini",
@@ -346,7 +318,37 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        
+        "search-o1-o4-mini-10": SearchO1ChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=10,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-o4-mini-50": SearchO1ChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-o4-mini-100": SearchO1ChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=100,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "gpt-researcher-o4-mini": GPTResearcherSampler(
+            report_type="deep",
+            config_path=get_config_path("configs/gpt-researcher-o4-mini.json"),
+        ),
+        "hf-odr-o4-mini": SmolAgentSampler(
+            model="azure/o4-mini",
+            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+            verbosity_level=1, # -1 for no logs, default is 1
+        ),
+
         "o3": LiteLLMSampler(
             model="azure/o3",
             max_tokens=32768,
@@ -381,17 +383,35 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "search-r1-o3": SearchR1ChatSampler(
+        "search-o1-o3-10": SearchO1ChatSampler(
             model="azure/o3",
             max_tokens=32768,
             reasoning_model=True,
+            max_search_limit=10,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "search-o1-o3": SearchO1ChatSampler(
+        "search-o1-o3-50": SearchO1ChatSampler(
             model="azure/o3",
             max_tokens=32768,
             reasoning_model=True,
+            max_search_limit=50,
             extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-o3-100": SearchO1ChatSampler(
+            model="azure/o3",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=100,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "gpt-researcher-o3": GPTResearcherSampler(
+            report_type="deep",
+            config_path=get_config_path("configs/gpt-researcher-o3-10.json"),
+        ),
+        "hf-odr-o3": SmolAgentSampler(
+            model="azure/o3",
+            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+            verbosity_level=1, # -1 for no logs, default is 1
         ),
 
 

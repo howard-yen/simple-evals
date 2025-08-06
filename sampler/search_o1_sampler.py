@@ -24,7 +24,6 @@ class SearchO1ChatSampler(SamplerBase):
         system_message: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 1024,
-        max_iterations: int = 100,
         max_search_limit: int = 10,
         reasoning_model: bool = False,
         topk: int = 10,
@@ -36,7 +35,6 @@ class SearchO1ChatSampler(SamplerBase):
         self.system_message = system_message
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.max_iterations = max_iterations
         self.max_search_limit = max_search_limit
         self.topk = topk
         self.reasoning_model = reasoning_model
@@ -196,10 +194,10 @@ Now you should analyze each web page and find helpful information based on the c
                 trial += 1
 
 
-    def _generate_webpage_analysis(self, prev_reasoning: str, search_query: str, document: str) -> str:
+    def _generate_webpage_analysis(self, prev_reasoning: str, search_query: str, document: str, extra_convo: list[dict[str, Any]]) -> str:
         """Generate webpage analysis using litellm"""
         instruction = self._get_webpage_to_reasonchain_instruction(prev_reasoning, search_query, document)
-        print(f"-------------------------Instruction to webpage analysis:\n\n{instruction}")
+        extra_convo.append(self._pack_message("user", instruction))
         message = self._pack_message("user", instruction)
         return self._generate_with_stop([message])        
 
@@ -265,12 +263,10 @@ Now you should analyze each web page and find helpful information based on the c
                         truncated_prev_reasoning = truncated_prev_reasoning.strip('\n')
                     
                     # the search results are the formatted documents, which we perform reasoning on
-                    reasoning_response, reasoning_usage, reasoning_time = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents)
+                    reasoning_response, reasoning_usage, reasoning_time = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents, extra_convo)
                     reasoning_output = reasoning_response['choices'][0]['message']['content']
-                    print(f"-------------------------Reasoning output:\n\n{reasoning_output}")
-                    extracted_info = self._extract_answer(reasoning_output, mode='infogen')
+                    extracted_info = f"{BEGIN_SEARCH_RESULT}{self._extract_answer(reasoning_output, mode='infogen')}{END_SEARCH_RESULT}"
                     all_usage.append(reasoning_usage)
-                    print(f"-------------------------Extracted info:\n\n{extracted_info}")
                     generation_time += reasoning_time
 
                     # Add search result to conversation
