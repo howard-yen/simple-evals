@@ -185,6 +185,14 @@ Now you should analyze each web page and find helpful information based on the c
                     raise ValueError("Litellm API returned empty response; retrying")
 
                 return response, get_usage_dict(response.usage), response._response_ms*1000
+            
+            except litellm.BadRequestError as e:
+                print("Bad Request Error", e)
+                return SamplerResponse(
+                    response_text="",
+                    response_metadata={"usage": None, "error": str(e)},
+                    actual_queried_message_list=message_list,
+                )
 
             except Exception as e:
                 exception_backoff = 2**trial

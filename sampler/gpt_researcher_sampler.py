@@ -117,6 +117,14 @@ class GPTResearcherSampler(SamplerBase):
                     },
                     actual_queried_message_list=message_list,
                 )
+            
+            except openai.BadRequestError as e:
+                print("Bad Request Error", e)
+                return SamplerResponse(
+                    response_text="",
+                    response_metadata={"usage": None, "error": str(e)},
+                    actual_queried_message_list=message_list,
+                )
 
             except Exception as e:
                 exception_backoff = 2**trial  # exponential back off
