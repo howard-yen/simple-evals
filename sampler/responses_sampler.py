@@ -116,9 +116,10 @@ class ResponsesSampler(SamplerBase):
                 print("Bad Request Error", e)
                 return SamplerResponse(
                     response_text="",
-                    response_metadata={"usage": None},
+                    response_metadata={"usage": None, "error": str(e)},
                     actual_queried_message_list=message_list,
                 )
+                
             except Exception as e:
                 exception_backoff = 2**trial  # expontial back off
                 print(

@@ -132,12 +132,12 @@ class SmolAgentSampler(SamplerBase):
         }
         model = LiteLLMModel(**model_params)
 
-        browser_metadata = {"all_usage": [], "tool_calls": []}
-        manager_metadata = {"all_usage": [], "tool_calls": []}
+        browser_metadata = {"usage": [], "tool_calls": []}
+        manager_metadata = {"usage": [], "tool_calls": []}
         def tracking_callback(memory_step, agent, metadata):
             usage = get_usage_dict(memory_step.token_usage)
             usage['step_type'] = str(type(memory_step))
-            metadata['all_usage'].append(usage)
+            metadata['usage'].append(usage)
             if hasattr(memory_step, 'tool_calls'):
                 metadata['tool_calls'].extend([x.dict() for x in memory_step.tool_calls])
 
@@ -254,6 +254,7 @@ class SmolAgentSampler(SamplerBase):
                         "extra_convo": extra_convo,
                         "memory": history,
                         "latency": result.timing.duration,
+                        "usage": metadata['browser_metadata']['usage'] + metadata['manager_metadata']['usage'],
                         **metadata,
                     },
                     actual_queried_message_list=message_list,
@@ -272,6 +273,7 @@ class SmolAgentSampler(SamplerBase):
                     return SamplerResponse(
                         response_text="",
                         response_metadata={
+                            "usage": None, 
                             "error": str(e),
                             "max_retries_exceeded": True,
                             "trial": trial,
@@ -284,6 +286,6 @@ class SmolAgentSampler(SamplerBase):
         # Should not reach here, but just in case
         return SamplerResponse(
             response_text="",
-            response_metadata={"error": "Unknown error"},
+            response_metadata={"usage": None, "error": "Unknown error"},
             actual_queried_message_list=message_list,
         )

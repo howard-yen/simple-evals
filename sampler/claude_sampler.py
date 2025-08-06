@@ -220,6 +220,7 @@ class ClaudeCompletionSampler(SamplerBase):
                     response_metadata=metadata,
                     actual_queried_message_list=claude_input_messages,
                 )
+                
             except anthropic.RateLimitError as e:
                 exception_backoff = 2**trial  # expontial back off
                 print(
@@ -228,6 +229,7 @@ class ClaudeCompletionSampler(SamplerBase):
                 )
                 time.sleep(exception_backoff)
                 trial += 1
+
             except anthropic.InternalServerError as e:
                 exception_backoff = 2**trial  # expontial back off
                 print(

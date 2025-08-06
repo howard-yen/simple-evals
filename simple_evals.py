@@ -411,7 +411,7 @@ def main():
         "hf-odr-o3": SmolAgentSampler(
             model="azure/o3",
             system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-            verbosity_level=1, # -1 for no logs, default is 1
+            verbosity_level=-1, # -1 for no logs, default is 1
         ),
 
 

@@ -104,6 +104,10 @@ class SearchR1ChatSampler(SamplerBase):
                     raise ValueError("Litellm API returned empty response; retrying")
 
                 return content, get_usage_dict(response.usage), response._response_ms*1000
+        
+            except litellm.BadRequestError as e:
+                print("Bad Request Error", e)
+                return None, None, None
 
             except Exception as e:
                 exception_backoff = 2**trial
@@ -138,6 +142,13 @@ class SearchR1ChatSampler(SamplerBase):
         while iteration_count < self.max_iterations:
             # Generate response
             output_text, usage, generation_time = self._generate_with_stop(current_message_list)
+            if output_text is None:
+                print("Bad Request Error in generation, returning empty response")
+                return SamplerResponse(
+                    response_text="",
+                    response_metadata={"usage": None, "error": "Bad Request Error"},
+                    actual_queried_message_list=message_list,
+                )
             all_usage.append(usage)
             generation_time += generation_time
 
@@ -174,7 +185,7 @@ class SearchR1ChatSampler(SamplerBase):
         metadata = {
             "iterations": iteration_count,
             "extra_convo": extra_convo,
-            "all_usage": all_usage,
+            "usage": all_usage,
             "generation_time": generation_time,
             "tool_time": tool_time,
             "latency": generation_time + tool_time,

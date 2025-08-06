@@ -100,7 +100,9 @@ class GPTResearcherSampler(SamplerBase):
         while True:
             try:
                 # Run async research in sync context
+                start_time = time.time()
                 research_results = asyncio.run(self._get_report(question))
+                latency = time.time() - start_time
                 logs = research_results["logs"]
                 extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in logs if x['type'] == "logs"]
                 costs = [x for x in logs if x['type'] == "cost"]
@@ -112,7 +114,8 @@ class GPTResearcherSampler(SamplerBase):
                         "urls": research_results["urls"],
                         "research_data": research_results["research_data"],
                         "extra_convo": extra_convo,
-                        "costs": costs,
+                        "usage": costs,
+                        "latency": latency,
                         "logs": logs,
                     },
                     actual_queried_message_list=message_list,
@@ -136,15 +139,9 @@ class GPTResearcherSampler(SamplerBase):
                 trial += 1
                 
                 # Prevent infinite retries
-                if trial > 5:
+                if trial >= 3:
                     return SamplerResponse(
                         response_text=f"Research failed after {trial} attempts: {str(e)}",
-                        response_metadata={
-                            "error": str(e),
-                            "sources": [],
-                            "urls": [],
-                            "research_data": None,
-                            "costs": 0,
-                        },
+                        response_metadata={"usage": None, "error": str(e)},
                         actual_queried_message_list=message_list,
                     )

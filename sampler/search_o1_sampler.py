@@ -315,7 +315,7 @@ Now you should analyze each web page and find helpful information based on the c
         metadata = {
             "iterations": search_count,
             "extra_convo": extra_convo,
-            "all_usage": all_usage,
+            "usage": all_usage,
             "generation_time": generation_time,
             "tool_time": tool_time,
             "latency": generation_time + tool_time,

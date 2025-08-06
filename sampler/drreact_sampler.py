@@ -40,6 +40,7 @@ class DrReactSampler(SamplerBase):
         self.extra_kwargs = extra_kwargs
         self.web_search_tool = WebSearchTool(topk=topk)
 
+
     def _pack_message(self, role, content):
         return {"role": str(role), "content": content}
 
@@ -115,7 +116,7 @@ class DrReactSampler(SamplerBase):
                 if response is None:
                     return SamplerResponse(
                         response_text="",
-                        response_metadata={"all_usage": None, "fallback": True},
+                        response_metadata={"usage": None, "fallback": True},
                         actual_queried_message_list=original_message_list,
                     )
 
