@@ -188,12 +188,8 @@ Now you should analyze each web page and find helpful information based on the c
             
             except litellm.BadRequestError as e:
                 print("Bad Request Error", e)
-                return SamplerResponse(
-                    response_text="",
-                    response_metadata={"usage": None, "error": str(e)},
-                    actual_queried_message_list=message_list,
-                )
-
+                return None, None, None
+                
             except Exception as e:
                 exception_backoff = 2**trial
                 exception_backoff = min(exception_backoff, 128)
@@ -231,6 +227,14 @@ Now you should analyze each web page and find helpful information based on the c
         while True:
             # Generate response
             response, usage, generation_time = self._generate_with_stop(message_list)
+            if response is None:
+                print("Bad Request Error in generation, returning empty response")
+                return SamplerResponse(
+                    response_text="",
+                    response_metadata={"usage": None, "error": "Bad Request Error"},
+                    actual_queried_message_list=message_list,
+                )
+
             output_text = response['choices'][0]['message']['content']
             all_usage.append(usage)
             generation_time += generation_time
@@ -272,6 +276,14 @@ Now you should analyze each web page and find helpful information based on the c
                     
                     # the search results are the formatted documents, which we perform reasoning on
                     reasoning_response, reasoning_usage, reasoning_time = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents, extra_convo)
+                    if reasoning_response is None:
+                        print("Bad Request Error in reasoning, returning empty response")
+                        return SamplerResponse(
+                            response_text="",
+                            response_metadata={"usage": None, "error": "Bad Request Error"},
+                            actual_queried_message_list=message_list,
+                        )
+                        
                     reasoning_output = reasoning_response['choices'][0]['message']['content']
                     extracted_info = f"{BEGIN_SEARCH_RESULT}{self._extract_answer(reasoning_output, mode='infogen')}{END_SEARCH_RESULT}"
                     all_usage.append(reasoning_usage)
