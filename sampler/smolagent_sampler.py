@@ -138,7 +138,7 @@ class SmolAgentSampler(SamplerBase):
             usage = get_usage_dict(memory_step.token_usage)
             usage['step_type'] = str(type(memory_step))
             metadata['usage'].append(usage)
-            if hasattr(memory_step, 'tool_calls'):
+            if hasattr(memory_step, 'tool_calls') and memory_step.tool_calls is not None:
                 metadata['tool_calls'].extend([x.dict() for x in memory_step.tool_calls])
 
         # Setup browser and web tools
