@@ -30,6 +30,7 @@ class DrReactSampler(SamplerBase):
         max_tokens: int=1024,
         temperature: float=1.0,
         topk: int=10,
+        track_queries: bool=False,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
@@ -37,6 +38,7 @@ class DrReactSampler(SamplerBase):
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.track_queries = track_queries
         self.extra_kwargs = extra_kwargs
         self.web_search_tool = WebSearchTool(topk=topk)
 
@@ -96,6 +98,7 @@ class DrReactSampler(SamplerBase):
                 self._pack_message("developer", self.system_message)
             ] + message_list
         original_message_list = copy.deepcopy(message_list)
+        queries = set()
         
         while cur_iter < self.max_iterations:
             cur_iter += 1
@@ -140,8 +143,11 @@ class DrReactSampler(SamplerBase):
                     if tool_call.function.name == "search":
                         if "query" not in function_args:
                             tool_response = f"Error: Please provide a query to search for in the function arguments."
+                        elif self.track_queries and function_args["query"] in queries:
+                            tool_response = f"Error: You have already searched for this query. Please refine your search query."
                         else:
                             tool_response = self.web_search_tool.search(function_args["query"])
+                            queries.add(function_args["query"])
                         
                     elif tool_call.function.name == "visit":
                         if "url" not in function_args:

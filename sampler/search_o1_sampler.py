@@ -167,7 +167,7 @@ Now you should analyze each web page and find helpful information based on the c
                         model=self.model,
                         messages=message_list,
                         max_tokens=self.max_tokens,
-                        timeout=3600,
+                        timeout=600,
                         **self.extra_kwargs
                     )
                 else:
@@ -176,7 +176,7 @@ Now you should analyze each web page and find helpful information based on the c
                         messages=message_list,
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
-                        timeout=3600,
+                        timeout=600,
                         **self.extra_kwargs
                     )
 

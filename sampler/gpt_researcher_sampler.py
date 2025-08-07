@@ -116,7 +116,6 @@ class GPTResearcherSampler(SamplerBase):
                         "extra_convo": extra_convo,
                         "usage": costs,
                         "latency": latency,
-                        "logs": logs,
                     },
                     actual_queried_message_list=message_list,
                 )
