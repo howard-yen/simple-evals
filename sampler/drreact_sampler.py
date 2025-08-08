@@ -114,7 +114,6 @@ class DrReactSampler(SamplerBase):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
                 fallback = True
-                generation_time = response._response_ms*1000
                 tool_time = 0
                 if response is None:
                     return SamplerResponse(
@@ -122,6 +121,7 @@ class DrReactSampler(SamplerBase):
                         response_metadata={"usage": None, "fallback": True},
                         actual_queried_message_list=original_message_list,
                     )
+                generation_time = response._response_ms*1000
 
             message = response.choices[0].message
             tool_calls = message.get("tool_calls", None)
