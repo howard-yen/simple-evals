@@ -87,6 +87,7 @@ class ChatCompletionSampler(SamplerBase):
                     actual_queried_message_list=message_list,
                 )
             except Exception as e:
+                self.client = OpenAI(base_url=base_url)
                 exception_backoff = 2**trial  # expontial back off
                 exception_backoff = min(exception_backoff, 128)
                 print(
