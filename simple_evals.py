@@ -29,7 +29,6 @@ from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSA
 from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
-from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
 from .sampler.drreact_sampler import DrReactSampler, DRREACT_SYSTEM_MESSAGE
 from .sampler.search_r1_sampler import SearchR1Sampler
 from .sampler.search_r1_chat_sampler import SearchR1ChatSampler

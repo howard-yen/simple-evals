@@ -243,10 +243,10 @@ class SmolAgentSampler(SamplerBase):
                         "input": [
                             {"role": x['role'], "content": "\n".join([y["text"] for y in x['content']])} if isinstance(x, dict) else {"role": x.role, "content": "\n".join([y["text"] for y in x.content])}
                             for x in message['model_input_messages']
-                        ],
-                        "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']}
+                        ] if message['model_input_messages'] else [],
+                        "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']} if message['model_output_message'] else [],
                     })
-                extra_convo = history[-1]['input']
+                extra_convo = history[-1]['input'] if history else []
                
                 return SamplerResponse(
                     response_text=response_text,
