@@ -261,7 +261,6 @@ class SmolAgentSampler(SamplerBase):
                 )
                 
             except Exception as e:
-                raise e
                 trial += 1
                 exception_backoff = 2 ** trial
                 print(
