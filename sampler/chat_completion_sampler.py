@@ -27,6 +27,7 @@ class ChatCompletionSampler(SamplerBase):
         base_url: str | None = None,
     ):
         self.api_key_name = "OPENAI_API_KEY"
+        self.base_url = base_url
         self.client = OpenAI(base_url=base_url)
         # using api_key=os.environ.get("OPENAI_API_KEY")  # please set your API_KEY
         self.model = model
@@ -87,7 +88,7 @@ class ChatCompletionSampler(SamplerBase):
                     actual_queried_message_list=message_list,
                 )
             except Exception as e:
-                self.client = OpenAI(base_url=base_url)
+                self.client = OpenAI(base_url=self.base_url)
                 exception_backoff = 2**trial  # expontial back off
                 exception_backoff = min(exception_backoff, 128)
                 print(
