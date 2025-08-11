@@ -1,6 +1,9 @@
 import json
 import os
 import time
+import asyncio
+import gc
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, Optional
 
 from huggingface_hub import login
@@ -196,6 +199,111 @@ class SmolAgentSampler(SamplerBase):
         """Pack message in the expected format"""
         return {"role": role, "content": content}
 
+    def _run_async_with_new_loop(self, coro, timeout=900):
+        """
+        Run async coroutine in a new event loop with proper cleanup.
+        This prevents event loop resource leaks by ensuring each loop is properly closed.
+        """
+        loop = None
+        try:
+            # Create a new event loop for isolation
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            # Run the coroutine with timeout
+            return loop.run_until_complete(asyncio.wait_for(coro, timeout=timeout))
+            
+        finally:
+            if loop:
+                try:
+                    # Cancel any pending tasks
+                    pending_tasks = asyncio.all_tasks(loop)
+                    if pending_tasks:
+                        for task in pending_tasks:
+                            task.cancel()
+                        
+                        # Give tasks a moment to cancel gracefully
+                        try:
+                            loop.run_until_complete(
+                                asyncio.wait_for(
+                                    asyncio.gather(*pending_tasks, return_exceptions=True),
+                                    timeout=2.0
+                                )
+                            )
+                        except asyncio.TimeoutError:
+                            # If tasks don't cancel in time, continue with cleanup
+                            pass
+                    
+                    # Close the loop
+                    loop.close()
+                    
+                except Exception:
+                    # If cleanup fails, at least try to close the loop
+                    try:
+                        loop.close()
+                    except Exception:
+                        pass
+                finally:
+                    # Clear the event loop from thread-local storage
+                    asyncio.set_event_loop(None)
+                    
+            # Force garbage collection to help clean up event loop resources
+            gc.collect()
+
+    async def _run_agent_with_cleanup(self, user_query: str) -> dict[str, Any]:
+        """Run the agent with proper resource cleanup and timeout handling"""
+        agent = None
+        try:
+            # Create a new agent instance for this run
+            agent, metadata = self._create_agent()
+            
+            # Run the agent in a thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            start_time = time.time()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                result = await loop.run_in_executor(executor, agent.run, user_query)
+            latency = time.time() - start_time
+            
+            # Process the result
+            response_text = result.output
+            if response_text is None:
+                raise Exception("No response text received from agent")
+
+            # HF SmolAgent may return int or other types
+            response_text = str(response_text)
+
+            # Extract messages and history
+            messages = result.messages
+            history = []
+
+            # the first message is just the task, which appears again in the second message
+            for message in messages[1:]:
+                history.append({
+                    "input": [
+                        {"role": x['role'], "content": "\n".join([y["text"] for y in x['content']])} if isinstance(x, dict) else {"role": x.role, "content": "\n".join([y["text"] for y in x.content])}
+                        for x in message['model_input_messages']
+                    ] if message['model_input_messages'] else [],
+                    "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']} if message['model_output_message'] else [],
+                })
+            extra_convo = history[-1]['input'] if history else []
+
+            return {
+                "response_text": response_text,
+                "extra_convo": extra_convo,
+                "memory": history,
+                "latency": latency,
+                "usage": metadata['browser_metadata']['usage'] + metadata['manager_metadata']['usage'],
+                "metadata": metadata,
+            }
+
+        finally:
+            # Force cleanup of agent and any potential connections
+            if agent:
+                del agent
+            
+            # Force garbage collection to help clean up any lingering references
+            gc.collect()
+
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         """Execute the agent with proper error handling and retry logic"""
         # The current agent does not support parallel calls as the memory and steps are shared.
@@ -221,44 +329,41 @@ class SmolAgentSampler(SamplerBase):
             user_query = "\n\n".join(messages)
 
         while trial < max_retries:
-            agent, metadata = self._create_agent()
             try:
-                # Run the agent
-                result = agent.run(user_query)
-                response_text = result.output
-                if response_text is None:
-                    raise Exception("No response text, retrying...")
+                agent_results = self._run_async_with_new_loop(
+                    self._run_agent_with_cleanup(user_query), 
+                    timeout=900
+                )
 
-                # HF SmolAgent may return int or other types
-                response_text = str(response_text)
-
-                # in HF SmolAgent, the messages are the steps. Each step contains one conversation.
-                # We will save the very last step as the actual queried message list, but we can also save all the steps.
-                messages = result.messages
-                history = []
-
-                # the first message is just the task, which appears again in the second message
-                for message in messages[1:]:
-                    history.append({
-                        "input": [
-                            {"role": x['role'], "content": "\n".join([y["text"] for y in x['content']])} if isinstance(x, dict) else {"role": x.role, "content": "\n".join([y["text"] for y in x.content])}
-                            for x in message['model_input_messages']
-                        ] if message['model_input_messages'] else [],
-                        "output": {"role": message['model_output_message']['role'], "content": message['model_output_message']['content']} if message['model_output_message'] else [],
-                    })
-                extra_convo = history[-1]['input'] if history else []
-               
                 return SamplerResponse(
-                    response_text=response_text,
+                    response_text=agent_results["response_text"],
                     response_metadata={
-                        "extra_convo": extra_convo,
-                        "memory": history,
-                        "latency": result.timing.duration,
-                        "usage": metadata['browser_metadata']['usage'] + metadata['manager_metadata']['usage'],
-                        **metadata,
+                        "extra_convo": agent_results["extra_convo"],
+                        "memory": agent_results["memory"],
+                        "latency": agent_results["latency"],
+                        "usage": agent_results["usage"],
+                        **agent_results["metadata"],
                     },
                     actual_queried_message_list=message_list,
                 )
+                
+            except asyncio.TimeoutError:
+                trial += 1
+                print(f"SmolAgent timeout after 900 seconds on trial {trial}/{max_retries}")
+                
+                if trial >= max_retries:
+                    return SamplerResponse(
+                        response_text="",
+                        response_metadata={
+                            "usage": None, 
+                            "error": f"Timeout after 900 seconds",
+                            "trial": trial,
+                        },
+                        actual_queried_message_list=message_list,
+                    )
+                
+                # Brief pause before retry
+                time.sleep(2)
                 
             except Exception as e:
                 trial += 1
@@ -274,7 +379,6 @@ class SmolAgentSampler(SamplerBase):
                         response_metadata={
                             "usage": None, 
                             "error": str(e),
-                            "max_retries_exceeded": True,
                             "trial": trial,
                         },
                         actual_queried_message_list=message_list,
