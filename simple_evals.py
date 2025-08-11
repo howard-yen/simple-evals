@@ -348,6 +348,14 @@ def main():
             verbosity_level=-1, # -1 for no logs, default is 1
         ),
 
+        "o3-deep-research": ResponsesSampler(
+            model="o3-deep-research-2025-06-26",
+            max_tokens=32768,
+            reasoning_model=True,
+            tools=[get_openai_web_search_tool(search_context_size="medium")],
+            # extra_kwargs={"seed": args.model_seed}
+        ),
+
         "o3": LiteLLMSampler(
             model="azure/o3",
             max_tokens=32768,

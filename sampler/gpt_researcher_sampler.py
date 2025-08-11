@@ -1,7 +1,9 @@
 import asyncio
 import time
+import gc
 from typing import Any, Dict
 
+import openai
 from gpt_researcher import GPTResearcher
 
 from ..types import MessageList, SamplerBase, SamplerResponse
@@ -39,44 +41,104 @@ class GPTResearcherSampler(SamplerBase):
     def _pack_message(self, role: str, content: Any) -> dict[str, Any]:
         return {"role": role, "content": content}
 
-    async def _get_report(self, question: str) -> dict[str, Any]:
-        """Get research report from GPT Researcher"""
-        # Initialize researcher with specified research type
-        logs_handler = CustomLogsHandler()
-        researcher_kwargs = {
-            "query": question,
-            "report_type": self.report_type,
-            "websocket": logs_handler,
-            "verbose": self.verbose,
-        }
-        
-        if self.config_path:
-            researcher_kwargs["config_path"] = self.config_path
+    async def _get_report_with_cleanup(self, question: str) -> dict[str, Any]:
+        """Get research report from GPT Researcher with proper resource cleanup"""
+        researcher = None
+        try:
+            # Initialize researcher with specified research type
+            logs_handler = CustomLogsHandler()
+            researcher_kwargs = {
+                "query": question,
+                "report_type": self.report_type,
+                "websocket": logs_handler,
+                "verbose": self.verbose,
+            }
             
-        # Each run requires its own instance of GPTResearcher
-        researcher = GPTResearcher(**researcher_kwargs)
-        
-        # Run research
-        research_data = await researcher.conduct_research()
+            if self.config_path:
+                researcher_kwargs["config_path"] = self.config_path
+                
+            # Each run requires its own instance of GPTResearcher
+            researcher = GPTResearcher(**researcher_kwargs)
+            
+            # Run research
+            research_data = await researcher.conduct_research()
 
-        # Access research sources
-        sources = researcher.get_research_sources()
+            # Access research sources
+            sources = researcher.get_research_sources()
 
-        # Get visited URLs
-        urls = researcher.get_source_urls()
-        
-        # Generate report
-        report = await researcher.write_report()
+            # Get visited URLs
+            urls = researcher.get_source_urls()
+            
+            # Generate report
+            report = await researcher.write_report()
 
-        return {
-            "report": report,
-            "sources": sources,
-            "urls": urls,
-            "research_data": research_data,
-            "logs": logs_handler.logs,
-            "costs": researcher.get_costs(),
-            "researcher": researcher,
-        }
+            return {
+                "report": report,
+                "sources": sources,
+                "urls": urls,
+                "research_data": research_data,
+                "logs": logs_handler.logs,
+                "costs": researcher.get_costs(),
+            }
+        finally:
+            # Force cleanup of researcher and any potential connections
+            if researcher:
+                # Force garbage collection of the researcher instance
+                del researcher
+            
+            # Force garbage collection to help clean up any lingering references
+            gc.collect()
+
+    def _run_async_with_new_loop(self, coro, timeout=900):
+        """
+        Run async coroutine in a new event loop with proper cleanup.
+        This prevents event loop resource leaks by ensuring each loop is properly closed.
+        """
+        loop = None
+        try:
+            # Create a new event loop for isolation
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            # Run the coroutine with timeout
+            return loop.run_until_complete(asyncio.wait_for(coro, timeout=timeout))
+            
+        finally:
+            if loop:
+                try:
+                    # Cancel any pending tasks
+                    pending_tasks = asyncio.all_tasks(loop)
+                    if pending_tasks:
+                        for task in pending_tasks:
+                            task.cancel()
+                        
+                        # Give tasks a moment to cancel gracefully
+                        try:
+                            loop.run_until_complete(
+                                asyncio.wait_for(
+                                    asyncio.gather(*pending_tasks, return_exceptions=True),
+                                    timeout=2.0
+                                )
+                            )
+                        except asyncio.TimeoutError:
+                            # If tasks don't cancel in time, continue with cleanup
+                            pass
+                    
+                    # Close the loop
+                    loop.close()
+                    
+                except Exception:
+                    # If cleanup fails, at least try to close the loop
+                    try:
+                        loop.close()
+                    except Exception:
+                        pass
+                finally:
+                    # Clear the event loop from thread-local storage
+                    asyncio.set_event_loop(None)
+                    
+            # Force garbage collection to help clean up event loop resources
+            gc.collect()
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         if self.system_message:
@@ -99,9 +161,12 @@ class GPTResearcherSampler(SamplerBase):
         trial = 0
         while True:
             try:
-                # Run async research in sync context
+                # Run async research with proper event loop management and cleanup
                 start_time = time.time()
-                research_results = asyncio.run(self._get_report(question))
+                research_results = self._run_async_with_new_loop(
+                    self._get_report_with_cleanup(question), 
+                    timeout=900
+                )
                 latency = time.time() - start_time
                 logs = research_results["logs"]
                 extra_convo = [{"role": f"{x['type']} {x['content']}", "content": x['output']} for x in logs if x['type'] == "logs"]
