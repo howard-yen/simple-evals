@@ -13,7 +13,29 @@ END_SEARCH_QUERY = "<|end_search_query|>"
 BEGIN_SEARCH_RESULT = "<|begin_search_result|>"
 END_SEARCH_RESULT = "<|end_search_result|>"
 
-class SearchO1ChatSampler(SamplerBase):
+SEARCH_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "search",
+        "description": "Search the web for information. The system will search and analyze relevant web pages, then provide you with helpful information in the format <|begin_search_result|> ...search results... <|end_search_result|>.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query."
+                },
+            },
+            "required": [
+                "query",
+            ],
+            "additionalProperties": False
+        },
+        "strict": True
+    }
+}
+
+class SearchO1ToolChatSampler(SamplerBase):
     """
     Search O1 sampler that implements reasoning and search loop using litellm
     """
@@ -48,7 +70,7 @@ class SearchO1ChatSampler(SamplerBase):
         return (
             "You are a reasoning assistant with the ability to perform web searches to help "
             "you answer the user's question accurately. You have special tools:\n\n"
-            "- To perform a search: write <|begin_search_query|> your query here <|end_search_query|>.\n"
+            "- To perform a search, use the search tool.\n"
             "Then, the system will search and analyze relevant web pages, then provide you with helpful information in the format <|begin_search_result|> ...search results... <|end_search_result|>.\n\n"
             f"You can repeat the search process multiple times if necessary. The maximum number of search attempts is limited to {max_search_limit}.\n\n"
             "Once you have all the information you need, continue your reasoning.\n\n"
@@ -58,25 +80,20 @@ class SearchO1ChatSampler(SamplerBase):
             "- I need to find out who voices Lara Croft in the video game.\n"
             "- Then, I need to determine which company developed that video game.\n\n"
             "Assistant:\n"
-            "<|begin_search_query|>Alice David Lara Croft voice<|end_search_query|>\n\n"
+            "search(query='Alice David Lara Croft voice')\n\n"
             "(System returns processed information from relevant web pages)\n\n"
             "Assistant thinks: The search results indicate that Alice David is the voice of Lara Croft in a specific video game. Now, I need to find out which company developed that game.\n\n"
             "Assistant:\n"
-            "<|begin_search_query|>video game developed by Alice David Lara Croft<|end_search_query|>\n\n"
+            "search(query='video game developed by Alice David Lara Croft')\n\n"
             "(System returns processed information from relevant web pages)\n\n"
             "Assistant continues reasoning with the new information...\n\n"
             "Remember:\n"
-            "- Use <|begin_search_query|> to request a web search and end with <|end_search_query|>.\n"
+            "- Use the search tool to request a web search.\n"
             "- When done searching, continue your reasoning.\n\n"
         )
 
     def _pack_message(self, role: str, content: Any) -> dict[str, Any]:
         return {"role": str(role), "content": content}
-
-    def _get_search_query(self, text: str) -> str | None:
-        pattern = re.compile(r"<\|begin_search_query\|>(.*?)<\|end_search_query\|>", re.DOTALL)
-        matches = pattern.findall(text)
-        return matches[-1].strip() if matches else None
 
     def _get_webpage_to_reasonchain_instruction(self, prev_reasoning: str, search_query: str, document: str) -> str:
         return f"""**Task Instruction:**
@@ -153,7 +170,7 @@ Now you should analyze each web page and find helpful information based on the c
         return extracted_text
 
        
-    def _generate_with_stop(self, message_list: MessageList) -> str:
+    def _generate_with_stop(self, message_list: MessageList, tools = None) -> str:
         trial = 0
         while True:
             try:
@@ -168,6 +185,7 @@ Now you should analyze each web page and find helpful information based on the c
                         messages=message_list,
                         max_tokens=self.max_tokens,
                         timeout=600,
+                        tools=tools,
                         **self.extra_kwargs
                     )
                 else:
@@ -177,11 +195,12 @@ Now you should analyze each web page and find helpful information based on the c
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
                         timeout=600,
+                        tools=tools,
                         **self.extra_kwargs
                     )
 
-                content = response['choices'][0]['message']['content']
-                if content is None:
+                message = response['choices'][0]['message']
+                if message['content'] is None and message.get("tool_calls") is None and message.get("reasoning_content") is None:
                     raise ValueError("Litellm API returned empty response; retrying")
 
                 return response, get_usage_dict(response.usage), response._response_ms*1000
@@ -226,7 +245,7 @@ Now you should analyze each web page and find helpful information based on the c
 
         while True:
             # Generate response
-            response, usage, response_time = self._generate_with_stop(message_list)
+            response, usage, response_time = self._generate_with_stop(message_list, tools=[SEARCH_TOOL])
             if response is None:
                 print("Bad Request Error in generation, returning empty response")
                 return SamplerResponse(
@@ -235,77 +254,95 @@ Now you should analyze each web page and find helpful information based on the c
                     actual_queried_message_list=message_list,
                 )
 
-            output_text = response['choices'][0]['message']['content']
+            message = response['choices'][0]['message']
+            output_text = message['content']
             all_usage.append(usage)
             generation_time += response_time
-            message_list.append(response['choices'][0]['message'])
+            message_list.append(message)
 
             # Check if this contains a search query
-            if response['choices'][0]['message'].get('reasoning_content'):
-                extra_convo.append(self._pack_message("assistant thinking", response['choices'][0]['message']['reasoning_content']))
-                all_output_text += response['choices'][0]['message']['reasoning_content']
+            if message.get('reasoning_content'):
+                extra_convo.append(self._pack_message("assistant thinking", message['reasoning_content']))
+                all_output_text += message['reasoning_content']
 
-            all_output_text += output_text
-            search_query = self._get_search_query(output_text)
-            if search_query:
-                extra_convo.append(self._pack_message("assistant", output_text))
-                if search_count < self.max_search_limit and search_query not in executed_search_queries:
-                    start_time = time.time()
-                    # Perform search
-                    formatted_documents = self.search_tool.search_o1(search_query, topk=self.topk)
-                    tool_time += time.time() - start_time
+            if output_text is not None:
+                all_output_text += output_text
+            tool_calls = message.get('tool_calls', None)
+            if tool_calls:
+                for tool_call in tool_calls:
+                    function_args = json.loads(tool_call.function.arguments)
+                    extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name}", function_args))
 
-                    # when reasoning about the results, we use the previous reasoning steps
-                    all_reasoning_steps = all_output_text.replace('\n\n', '\n').split("\n")
-                    truncated_prev_reasoning = ""
-                    for i, step in enumerate(all_reasoning_steps):
-                        truncated_prev_reasoning += f"Step {i + 1}: {step}\n\n"
-                    
-                    prev_steps = truncated_prev_reasoning.split('\n\n')
-                    if len(prev_steps) <= 5:
-                        truncated_prev_reasoning = '\n\n'.join(prev_steps)
-                    else:
-                        truncated_prev_reasoning = ''
-                        for i, step in enumerate(prev_steps):
-                            if i == 0 or i >= len(prev_steps) - 4 or BEGIN_SEARCH_QUERY in step or BEGIN_SEARCH_RESULT in step:
-                                truncated_prev_reasoning += step + '\n\n'
-                            else:
-                                if truncated_prev_reasoning[-len('\n\n...\n\n'):] != '\n\n...\n\n':
-                                    truncated_prev_reasoning += '...\n\n'
-                        truncated_prev_reasoning = truncated_prev_reasoning.strip('\n')
-                    
-                    # the search results are the formatted documents, which we perform reasoning on
-                    reasoning_response, reasoning_usage, reasoning_time = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents, extra_convo)
-                    if reasoning_response is None:
-                        print("Bad Request Error in reasoning, returning empty response")
-                        return SamplerResponse(
-                            response_text="",
-                            response_metadata={"usage": None, "error": "Bad Request Error"},
-                            actual_queried_message_list=message_list,
-                        )
+                    if tool_call.function.name != "search":
+                        tool_response = f"Error: Unknown tool: {tool_call.function.name}"
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': tool_response})
+                        extra_convo.append(self._pack_message("tool", tool_response))
+                        continue
+
+                    if "query" not in function_args:
+                        tool_response = f"Error: Please provide a query to search for in the function arguments."
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': tool_response})
+                        extra_convo.append(self._pack_message("tool", tool_response))
+                        continue
+
+                    search_query = function_args['query']
+                    if search_count < self.max_search_limit and search_query not in executed_search_queries:
+                        start_time = time.time()
+                        # Perform search
+                        formatted_documents = self.search_tool.search_o1(search_query, topk=self.topk)
+                        tool_time += time.time() - start_time
+
+                        # when reasoning about the results, we use the previous reasoning steps
+                        all_reasoning_steps = all_output_text.replace('\n\n', '\n').split("\n")
+                        truncated_prev_reasoning = ""
+                        for i, step in enumerate(all_reasoning_steps):
+                            truncated_prev_reasoning += f"Step {i + 1}: {step}\n\n"
                         
-                    reasoning_output = reasoning_response['choices'][0]['message']['content']
-                    extracted_info = f"{BEGIN_SEARCH_RESULT}{self._extract_answer(reasoning_output, mode='infogen')}{END_SEARCH_RESULT}"
-                    all_usage.append(reasoning_usage)
-                    generation_time += reasoning_time
+                        prev_steps = truncated_prev_reasoning.split('\n\n')
+                        if len(prev_steps) <= 5:
+                            truncated_prev_reasoning = '\n\n'.join(prev_steps)
+                        else:
+                            truncated_prev_reasoning = ''
+                            for i, step in enumerate(prev_steps):
+                                if i == 0 or i >= len(prev_steps) - 4 or BEGIN_SEARCH_QUERY in step or BEGIN_SEARCH_RESULT in step:
+                                    truncated_prev_reasoning += step + '\n\n'
+                                else:
+                                    if truncated_prev_reasoning[-len('\n\n...\n\n'):] != '\n\n...\n\n':
+                                        truncated_prev_reasoning += '...\n\n'
+                            truncated_prev_reasoning = truncated_prev_reasoning.strip('\n')
+                        
+                        # the search results are the formatted documents, which we perform reasoning on
+                        reasoning_response, reasoning_usage, reasoning_time = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents, extra_convo)
+                        if reasoning_response is None:
+                            print("Bad Request Error in reasoning, returning empty response")
+                            return SamplerResponse(
+                                response_text="",
+                                response_metadata={"usage": None, "error": "Bad Request Error"},
+                                actual_queried_message_list=message_list,
+                            )
+                            
+                        reasoning_output = reasoning_response['choices'][0]['message']['content']
+                        extracted_info = f"{BEGIN_SEARCH_RESULT}{self._extract_answer(reasoning_output, mode='infogen')}{END_SEARCH_RESULT}"
+                        all_usage.append(reasoning_usage)
+                        generation_time += reasoning_time
 
-                    # Add search result to conversation
-                    message_list.append(self._pack_message("user", extracted_info))
+                        # Add search result to conversation
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': extracted_info})
 
-                    # Add to extra conversation for metadata
-                    extra_convo.append(self._pack_message(f"user", extracted_info))
-                    search_count += 1
-                    executed_search_queries.add(search_query)
-                
-                elif search_count >= self.max_search_limit:
-                    limit_message = f"\n{BEGIN_SEARCH_RESULT}\nThe maximum search limit is exceeded. You are not allowed to search.\n{END_SEARCH_RESULT}\n"
-                    extra_convo.append(self._pack_message("user", limit_message))
-                    message_list.append(self._pack_message("user", limit_message))
+                        # Add to extra conversation for metadata
+                        extra_convo.append(self._pack_message(f"tool", extracted_info))
+                        search_count += 1
+                        executed_search_queries.add(search_query)
                     
-                elif search_query in executed_search_queries:
-                    limit_message = f"\n{BEGIN_SEARCH_RESULT}\nYou have searched this query. Please refer to previous results.\n{END_SEARCH_RESULT}\n"
-                    extra_convo.append(self._pack_message("user", limit_message))
-                    message_list.append(self._pack_message("user", limit_message))
+                    elif search_count >= self.max_search_limit:
+                        limit_message = f"\n{BEGIN_SEARCH_RESULT}\nThe maximum search limit is exceeded. You are not allowed to search.\n{END_SEARCH_RESULT}\n"
+                        extra_convo.append(self._pack_message("tool", limit_message))
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': limit_message})
+                        
+                    elif search_query in executed_search_queries:
+                        limit_message = f"\n{BEGIN_SEARCH_RESULT}\nYou have searched this query. Please refer to previous results.\n{END_SEARCH_RESULT}\n"
+                        extra_convo.append(self._pack_message("tool", limit_message))
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': limit_message})
 
             else:
                 # No search needed, we're done
