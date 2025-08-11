@@ -98,8 +98,8 @@ def extract_snippet_with_context(full_text: str, snippet: str, context_chars: in
         return False, f"Failed to extract snippet context due to {str(e)}"
 
 
-@lru_cache(maxsize=2048)
-@cache.memoize(typed=True, expire=1e6, tag="content")
+@lru_cache(maxsize=8192)
+@cache.memoize(typed=True, expire=1e7, tag="content")
 def extract_text_from_url(url, use_jina=False, jina_api_key=None, snippet: Optional[str] = None):
     """
     Extract text from a URL. If a snippet is provided, extract the context related to it.
@@ -219,4 +219,3 @@ def extract_pdf_text(url):
         return "Error: Request timed out after 20 seconds"
     except Exception as e:
         return f"Error: {str(e)}"
-

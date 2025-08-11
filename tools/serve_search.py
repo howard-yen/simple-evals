@@ -272,7 +272,7 @@ def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
 
 
 @lru_cache(maxsize=8192)
-@cache.memoize(typed=True, expire=1e6, tag="content")
+@cache.memoize(typed=True, expire=1e7, tag="content")
 def _cached_get_content(url: str) -> Tuple[bool, str, str]:
     """Cached function to get raw content from URL."""
     try:
