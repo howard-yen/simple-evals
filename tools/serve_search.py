@@ -23,7 +23,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
 }
 scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
-cache = Cache()
+cache = Cache("./cache")
 
 class SearchRequest(BaseModel):
     query: str
@@ -124,7 +124,7 @@ MAX_RETRIES = 3
 INITIAL_RETRY_DELAY = 0.2
 
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=8192)
 @cache.memoize(typed=True, expire=1e6, tag="serper")
 def serper_search(query: str, topk: int = 10) -> List[Dict]:
     url = "https://google.serper.dev/search"
@@ -157,7 +157,7 @@ def serper_search(query: str, topk: int = 10) -> List[Dict]:
     return response
 
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=8192)
 def _cached_search(query: str, topk: int = 10) -> str:
     """Cached search function that takes hashable parameters."""
     try:
@@ -176,7 +176,7 @@ def _cached_search(query: str, topk: int = 10) -> str:
     return output
 
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=8192)
 def _cached_search_r1(query: str, topk: int = 10) -> str:
     """Cached search function that takes hashable parameters."""
     # https://github.com/PeterGriffinJin/Search-R1/blob/main/search_r1/search/serp_search_server.py
@@ -246,7 +246,7 @@ def _cached_search_r1(query: str, topk: int = 10) -> str:
     return output
 
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=8192)
 def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
     # adapted from https://github.com/sunnynexus/Search-o1/blob/main/scripts/bing_search.py
     try:
@@ -271,7 +271,7 @@ def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
     return useful_info
 
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=8192)
 @cache.memoize(typed=True, expire=1e6, tag="content")
 def _cached_get_content(url: str) -> Tuple[bool, str, str]:
     """Cached function to get raw content from URL."""
@@ -286,7 +286,7 @@ def _cached_get_content(url: str) -> Tuple[bool, str, str]:
         return False, str(e), ""
 
 
-@lru_cache(maxsize=2048)
+@lru_cache(maxsize=8192)
 @cache.memoize(typed=True, expire=1e6, tag="snippet")
 def _cached_find_snippet(content: str, query: str, num_characters: int = 10000) -> str:
     """Cached function to find snippet in content."""
