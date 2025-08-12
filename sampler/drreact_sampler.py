@@ -177,7 +177,7 @@ class DrReactSampler(SamplerBase):
         metadata = {
             "fallback": fallback,
             "extra_convo": extra_convo,
-            "all_usage": all_usages,
+            "usage": all_usages,
             "tool_counts": tool_counts,
             "tool_time": tool_time,
             "generation_time": generation_time,
