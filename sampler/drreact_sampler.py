@@ -34,7 +34,7 @@ class DrReactSampler(SamplerBase):
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
-        self.system_message = system_message
+        self.system_message = system_message + f"\nYou are allowed to use the at most {max_iterations} tool calls."
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -69,11 +69,11 @@ class DrReactSampler(SamplerBase):
 
             except litellm.BadRequestError as e:
                 print(f"Bad request error: {e}. Returning empty response.")
-                return None
+                return f"Bad request error: {e}. Returning empty response."
             
             except litellm.APIConnectionError as e:
                 print(f"API connection error: {e}. Returning empty response.")
-                return None
+                return f"API connection error: {e}. Returning empty response."
 
             except Exception as e:
                 exception_backoff = 2**trial  # exponential back off
@@ -103,22 +103,19 @@ class DrReactSampler(SamplerBase):
         while cur_iter < self.max_iterations:
             cur_iter += 1
             print(f"Iteration {cur_iter}\n")
-            fallback = False
             if cur_iter == self.max_iterations:
-                message_list.append(self._pack_message("user", "You have reached the maximum number of tool calls. Please complete the task without using any tools."))
                 response = self.generate(message_list)
             else:
                 response = self.generate(message_list, tools=[SEARCH_TOOL, VISIT_TOOL])
             
-            if response is None:
+            if isinstance(response, str):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
-                fallback = True
                 tool_time = 0
-                if response is None:
+                if isinstance(response, str):
                     return SamplerResponse(
                         response_text="",
-                        response_metadata={"usage": None, "fallback": True},
+                        response_metadata={"usage": None, "fallback": True, "error": response},
                         actual_queried_message_list=original_message_list,
                     )
                 generation_time = response._response_ms*1000
@@ -175,7 +172,7 @@ class DrReactSampler(SamplerBase):
                 break
 
         metadata = {
-            "fallback": fallback,
+            "fallback": False,
             "extra_convo": extra_convo,
             "usage": all_usages,
             "tool_counts": tool_counts,
