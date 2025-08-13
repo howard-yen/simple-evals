@@ -203,7 +203,7 @@ Now you should analyze each web page and find helpful information based on the c
                 if message['content'] is None and message.get("tool_calls") is None and message.get("reasoning_content") is None:
                     raise ValueError("Litellm API returned empty response; retrying")
 
-                return response, get_usage_dict(response.usage), response._response_ms*1000
+                return response
             
             except litellm.BadRequestError as e:
                 print(f"Bad request error: {e}. Returning empty response.")
