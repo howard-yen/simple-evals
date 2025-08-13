@@ -76,12 +76,12 @@ class DrReactSampler(SamplerBase):
                 return f"API connection error: {e}. Returning empty response."
 
             except Exception as e:
+                if trial >= 5:
+                    return f"Error: {e}. Returning empty response after 5 trials."
+                    
                 exception_backoff = 2**trial  # exponential back off
                 exception_backoff = min(exception_backoff, 120)
-                print(
-                    f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec",
-                    e,
-                )
+                print(f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}")
                 time.sleep(exception_backoff)
                 trial += 1
 

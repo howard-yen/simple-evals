@@ -206,12 +206,19 @@ Now you should analyze each web page and find helpful information based on the c
                 return response, get_usage_dict(response.usage), response._response_ms*1000
             
             except litellm.BadRequestError as e:
-                print("Bad Request Error", e)
-                return None, None, None
-                
+                print(f"Bad request error: {e}. Returning empty response.")
+                return f"Bad request error: {e}. Returning empty response."
+            
+            except litellm.APIConnectionError as e:
+                print(f"API connection error: {e}. Returning empty response.")
+                return f"API connection error: {e}. Returning empty response."
+
             except Exception as e:
-                exception_backoff = 2**trial
-                exception_backoff = min(exception_backoff, 128)
+                if trial >= 5:
+                    return f"Error: {e}. Returning empty response after 5 trials."
+                    
+                exception_backoff = 2**trial  # exponential back off
+                exception_backoff = min(exception_backoff, 120)
                 print(f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}")
                 time.sleep(exception_backoff)
                 trial += 1
@@ -245,14 +252,16 @@ Now you should analyze each web page and find helpful information based on the c
 
         while True:
             # Generate response
-            response, usage, response_time = self._generate_with_stop(message_list, tools=[SEARCH_TOOL])
-            if response is None:
-                print("Bad Request Error in generation, returning empty response")
+            response = self._generate_with_stop(message_list, tools=[SEARCH_TOOL])
+            if isinstance(response, str):
+                print(f"Error in generation: {response}")
                 return SamplerResponse(
                     response_text="",
-                    response_metadata={"usage": None, "error": "Bad Request Error"},
+                    response_metadata={"usage": None, "error": response},
                     actual_queried_message_list=message_list,
                 )
+            usage = get_usage_dict(response.usage)
+            response_time = response._response_ms*1000
 
             message = response['choices'][0]['message']
             output_text = message['content']
