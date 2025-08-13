@@ -321,14 +321,16 @@ Now you should analyze each web page and find helpful information based on the c
                             truncated_prev_reasoning = truncated_prev_reasoning.strip('\n')
                         
                         # the search results are the formatted documents, which we perform reasoning on
-                        reasoning_response, reasoning_usage, reasoning_time = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents, extra_convo)
-                        if reasoning_response is None:
-                            print("Bad Request Error in reasoning, returning empty response")
+                        reasoning_response = self._generate_webpage_analysis(truncated_prev_reasoning, search_query, formatted_documents, extra_convo)
+                        if isinstance(reasoning_response, str):
+                            print(f"Error in reasoning: {reasoning_response}")
                             return SamplerResponse(
                                 response_text="",
-                                response_metadata={"usage": None, "error": "Bad Request Error"},
+                                response_metadata={"usage": None, "error": reasoning_response},
                                 actual_queried_message_list=message_list,
                             )
+                        reasoning_usage = get_usage_dict(reasoning_response.usage)
+                        reasoning_time = reasoning_response._response_ms*1000
                             
                         reasoning_output = reasoning_response['choices'][0]['message']['content']
                         extracted_info = f"{BEGIN_SEARCH_RESULT}{self._extract_answer(reasoning_output, mode='infogen')}{END_SEARCH_RESULT}"
