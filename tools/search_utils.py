@@ -94,4 +94,6 @@ class WebSearchTool():
             return out
         except Exception as e:
             print("Search o1 error: " + str(e))
+            print(response)
+            print(response.text)
             return {"output": "Search error: " + str(e), "search_results": []}

@@ -249,8 +249,8 @@ Now you should analyze each web page and find helpful information based on the c
         extra_convo = []
         # for multi-round frameworks, we keep track of all usages
         all_usage = []
-        generation_usage = []
-        reasoning_usage = []
+        all_generation_usage = []
+        all_reasoning_usage = []
         all_search_results = []
 
         while True:
@@ -269,7 +269,7 @@ Now you should analyze each web page and find helpful information based on the c
             message = response['choices'][0]['message']
             output_text = message['content']
             all_usage.append(usage)
-            generation_usage.append(usage)
+            all_generation_usage.append(usage)
             generation_time += response_time
             message_list.append(message)
 
@@ -341,7 +341,7 @@ Now you should analyze each web page and find helpful information based on the c
                         reasoning_output = reasoning_response['choices'][0]['message']['content']
                         extracted_info = f"{BEGIN_SEARCH_RESULT}{self._extract_answer(reasoning_output, mode='infogen')}{END_SEARCH_RESULT}"
                         all_usage.append(reasoning_usage)
-                        reasoning_usage.append(reasoning_usage)
+                        all_reasoning_usage.append(reasoning_usage)
                         generation_time += reasoning_time
 
                         # Add search result to conversation
@@ -371,8 +371,8 @@ Now you should analyze each web page and find helpful information based on the c
             "iterations": search_count,
             "extra_convo": extra_convo,
             "usage": all_usage,
-            "generation_usage": generation_usage,
-            "reasoning_usage": reasoning_usage,
+            "generation_usage": all_generation_usage,
+            "reasoning_usage": all_reasoning_usage,
             "generation_time": generation_time,
             "tool_time": tool_time,
             "latency": generation_time + tool_time,
