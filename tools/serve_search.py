@@ -343,7 +343,7 @@ def search_o1_search(request: SearchRequest):
     urls = [info['url'] for info in output]
     fetched_contents = fetch_page_content(urls, use_jina=False, jina_api_key=None)
 
-    formatted_documnets = ""
+    formatted_documents = ""
     for i, info in enumerate(output):
         url = info['url']
         raw_context = fetched_contents.get(url, '')
@@ -356,17 +356,16 @@ def search_o1_search(request: SearchRequest):
             context = raw_context[:3000*2]
 
         info['context'] = context
-        formatted_documnets += f"**Web Page {i + 1}:**\n"
-        formatted_documnets += json.dumps(info, ensure_ascii=False, indent=2) + "\n"
+        formatted_documents += f"**Web Page {i + 1}:**\n"
+        formatted_documents += json.dumps(info, ensure_ascii=False, indent=2) + "\n"
 
-    output = formatted_documnets
-
-    return {"output": output}
+    return {"output": formatted_documents, "search_results": output}
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8005)
     args = parser.parse_args()
+    assert os.environ["SERPER_API_KEY"] is not None, "SERPER_API_KEY is not set"
 
     uvicorn.run(app, host="0.0.0.0", port=args.port)
