@@ -89,4 +89,9 @@ class WebSearchTool():
 
         payload = json.dumps({"query": query, "topk": topk})
         response = requests.post(self.url + "/search_o1", data=payload)
-        return response.json()['output']
+        try:
+            out = response.json()
+            return out
+        except Exception as e:
+            print("Search o1 error: " + str(e))
+            return {"output": "Search error: " + str(e), "search_results": []}
