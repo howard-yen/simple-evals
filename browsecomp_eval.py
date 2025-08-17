@@ -152,7 +152,7 @@ class BrowseCompEval(Eval):
             }, example_level_metadata=grade_result)
 
         # Run evaluation and collect results
-        results = common.map_with_progress(fn, self.examples, num_threads=self.n_threads)
+        results = common.map_with_progress(fn, self.examples, num_threads=self.n_threads, checkpoint_file=checkpoint_file, checkpoint_interval=checkpoint_interval)
 
         # Aggregate metrics
         aggregate_metrics = {

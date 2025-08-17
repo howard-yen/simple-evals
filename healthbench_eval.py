@@ -364,6 +364,8 @@ class HealthBenchEval(Eval):
             grade_rubric_item,
             rubric_items,
             pbar=False,
+            checkpoint_file=checkpoint_file,
+            checkpoint_interval=checkpoint_interval,
         )
 
         # compute the overall score
