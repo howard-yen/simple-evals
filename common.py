@@ -1,5 +1,7 @@
 import io
 import os
+import pickle
+import threading
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing.pool import ThreadPool
@@ -234,17 +236,114 @@ def map_with_progress(
     xs: list[Any],
     num_threads: int = os.cpu_count() or 10,
     pbar: bool = True,
+    checkpoint_file: str | None = None,
+    checkpoint_interval: int = 10,
 ):
     """
     Apply f to each element of xs, using a ThreadPool, and show progress.
+    
+    Args:
+        f: Function to apply to each element
+        xs: List of inputs to process
+        num_threads: Number of threads to use
+        pbar: Whether to show progress bar
+        checkpoint_file: Optional file path to save/load checkpoints
+        checkpoint_interval: Save checkpoint every N completed items
     """
     pbar_fn = tqdm if pbar else lambda x, *args, **kwargs: x
+    
+    # Load existing results from checkpoint if it exists
+    completed_results = {}
+    completed_indices = set()
+    
+    if checkpoint_file and os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, 'rb') as f:
+                checkpoint_data = pickle.load(f)
+                completed_results = checkpoint_data.get('results', {})
+                completed_indices = set(checkpoint_data.get('indices', []))
+                if pbar:
+                    print(f"Loaded checkpoint with {len(completed_results)} completed items")
+        except Exception as e:
+            if pbar:
+                print(f"Warning: Could not load checkpoint file: {e}")
+            completed_results = {}
+            completed_indices = set()
+    
+    # Filter out already completed items
+    remaining_items = [(i, x) for i, x in enumerate(xs) if i not in completed_indices]
+    
+    if not remaining_items:
+        # All items already completed
+        return [completed_results[i] for i in range(len(xs))]
+    
+    # Set up checkpoint saving
+    checkpoint_lock = threading.Lock() if checkpoint_file else None
+    completed_count = len(completed_results)
+    
+    def save_checkpoint():
+        if checkpoint_file and checkpoint_lock:
+            with checkpoint_lock:
+                try:
+                    checkpoint_data = {
+                        'results': completed_results,
+                        'indices': list(completed_indices)
+                    }
+                    # Write to temporary file first, then rename for atomicity
+                    temp_file = checkpoint_file + '.tmp'
+                    with open(temp_file, 'wb') as f:
+                        pickle.dump(checkpoint_data, f)
+                    os.rename(temp_file, checkpoint_file)
+                except Exception as e:
+                    if pbar:
+                        print(f"Warning: Could not save checkpoint: {e}")
+    
+    def wrapped_f(item_tuple):
+        nonlocal completed_count
+        i, x = item_tuple
+        try:
+            result = f(x)
+            
+            # Save result and update checkpoint if needed
+            if checkpoint_file:
+                with checkpoint_lock:
+                    completed_results[i] = result
+                    completed_indices.add(i)
+                    completed_count += 1
+                    
+                    # Save checkpoint periodically
+                    if completed_count % checkpoint_interval == 0:
+                        save_checkpoint()
+            
+            return i, result
+        except Exception as e:
+            # Re-raise with index information for debugging
+            raise Exception(f"Error processing item {i}: {str(e)}") from e
 
     if os.getenv("debug"):
-        return list(map(f, pbar_fn(xs, total=len(xs))))
+        # Sequential execution for debugging
+        results_with_indices = []
+        for item in pbar_fn(remaining_items, total=len(remaining_items)):
+            results_with_indices.append(wrapped_f(item))
     else:
-        with ThreadPool(min(num_threads, len(xs))) as pool:
-            return list(pbar_fn(pool.imap(f, xs), total=len(xs)))
+        # Parallel execution
+        with ThreadPool(min(num_threads, len(remaining_items))) as pool:
+            results_with_indices = list(pbar_fn(
+                pool.imap(wrapped_f, remaining_items), 
+                total=len(remaining_items)
+            ))
+    
+    # Update completed results with new results
+    for i, result in results_with_indices:
+        completed_results[i] = result
+        completed_indices.add(i)
+    
+    # Save final checkpoint
+    if checkpoint_file:
+        save_checkpoint()
+    
+    # Return results in original order
+    return [completed_results[i] for i in range(len(xs))]
 
 
 jinja_env = jinja2.Environment(

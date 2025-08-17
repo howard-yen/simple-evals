@@ -86,6 +86,9 @@ def main():
     parser.add_argument(
         "--model_seed", type=int, help="Seed to use for the model", default=None
     )
+    parser.add_argument(
+        "--checkpoint-interval", type=int, help="Interval to store checkpoint", default=-1
+    )
 
     args = parser.parse_args()
 
@@ -722,7 +725,7 @@ def main():
                 mergekey2resultpath[f"{file_stem}"] = result_filename
                 continue
 
-            result = eval_obj(sampler)
+            result = eval_obj(sampler, checkpoint_file=(result_filename+".checkpoint" if args.checkpoint_interval > 0 else None), checkpoint_interval=args.checkpoint_interval)
             # ^^^ how to use a sampler
             report_filename = f"{args.output_dir}/{file_stem}{debug_suffix}.html"
             print(f"Writing report to {report_filename}")

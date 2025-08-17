@@ -134,7 +134,7 @@ class HLEEval(Eval):
             "confidence": confidence
         }
 
-    def __call__(self, sampler: SamplerBase) -> EvalResult:
+    def __call__(self, sampler: SamplerBase, checkpoint_file: str | None = None, checkpoint_interval: int = 10) -> EvalResult:
         def fn(row: dict):
             question_text = row['question']
             correct_answer = row['answer']
@@ -190,7 +190,7 @@ class HLEEval(Eval):
             )
 
         # Run evaluation and collect results
-        results = common.map_with_progress(fn, self.examples, num_threads=self.n_threads)
+        results = common.map_with_progress(fn, self.examples, num_threads=self.n_threads, checkpoint_file=checkpoint_file, checkpoint_interval=checkpoint_interval)
 
         calibration_error = calib_err(
             np.array([result.metrics["confidence"] for result in results]),

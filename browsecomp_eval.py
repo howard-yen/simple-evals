@@ -110,7 +110,7 @@ class BrowseCompEval(Eval):
             "confidence": confidence
         }
 
-    def __call__(self, sampler: SamplerBase) -> EvalResult:
+    def __call__(self, sampler: SamplerBase, checkpoint_file: str | None = None, checkpoint_interval: int = 10) -> EvalResult:
         def fn(row: dict):
             problem = decrypt(row.get("problem", ""), row.get("canary", ""))
             answer = decrypt(row.get("answer", ""), row.get("canary", ""))

@@ -421,7 +421,7 @@ class HealthBenchEval(Eval):
 
         return metrics, readable_explanation_str, rubric_items_with_grades
 
-    def __call__(self, sampler: SamplerBase) -> EvalResult:
+    def __call__(self, sampler: SamplerBase, checkpoint_file: str | None = None, checkpoint_interval: int = 10) -> EvalResult:
         def fn(row: dict):
             prompt_messages = row["prompt"]
             # HY: This is not in the original code, but I think it makes sense to add another prompt explicitly asking the system to act as a physician.
