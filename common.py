@@ -254,24 +254,20 @@ def map_with_progress(
     
     # Load existing results from checkpoint if it exists
     completed_results = {}
-    completed_indices = set()
     
     if checkpoint_file and os.path.exists(checkpoint_file):
         try:
-            with open(checkpoint_file, 'rb') as f:
-                checkpoint_data = pickle.load(f)
-                completed_results = checkpoint_data.get('results', {})
-                completed_indices = set(checkpoint_data.get('indices', []))
+            with open(checkpoint_file, 'rb') as fin:
+                completed_results = pickle.load(fin)
                 if pbar:
                     print(f"Loaded checkpoint with {len(completed_results)} completed items")
         except Exception as e:
             if pbar:
                 print(f"Warning: Could not load checkpoint file: {e}")
             completed_results = {}
-            completed_indices = set()
     
     # Filter out already completed items
-    remaining_items = [(i, x) for i, x in enumerate(xs) if i not in completed_indices]
+    remaining_items = [(i, x) for i, x in enumerate(xs) if i not in completed_results]
     
     if not remaining_items:
         # All items already completed
@@ -279,41 +275,37 @@ def map_with_progress(
     
     # Set up checkpoint saving
     checkpoint_lock = threading.Lock() if checkpoint_file else None
-    completed_count = len(completed_results)
     
     def save_checkpoint():
-        if checkpoint_file and checkpoint_lock:
-            with checkpoint_lock:
-                try:
-                    checkpoint_data = {
-                        'results': completed_results,
-                        'indices': list(completed_indices)
-                    }
-                    # Write to temporary file first, then rename for atomicity
-                    temp_file = checkpoint_file + '.tmp'
-                    with open(temp_file, 'wb') as f:
-                        pickle.dump(checkpoint_data, f)
-                    os.rename(temp_file, checkpoint_file)
-                except Exception as e:
-                    if pbar:
-                        print(f"Warning: Could not save checkpoint: {e}")
+        # only call this if the lock is already acquired
+        try:
+            # Write to temporary file first, then rename for atomicity
+            temp_file = checkpoint_file + '.tmp'
+            with open(temp_file, 'wb') as fout:
+                pickle.dump(completed_results, fout)
+            os.rename(temp_file, checkpoint_file)
+        except Exception as e:
+            if pbar:
+                print(f"Warning: Could not save checkpoint: {e}")
     
     def wrapped_f(item_tuple):
-        nonlocal completed_count
         i, x = item_tuple
         try:
+            print(f"processing item {i}")
             result = f(x)
+            print(f"processed item {i}")
             
             # Save result and update checkpoint if needed
             if checkpoint_file:
+                print(f"waiting for lock in {i}")
                 with checkpoint_lock:
+                    print(f"got the lock in {i}")
                     completed_results[i] = result
-                    completed_indices.add(i)
-                    completed_count += 1
                     
                     # Save checkpoint periodically
-                    if completed_count % checkpoint_interval == 0:
+                    if len(completed_results) % checkpoint_interval == 0:
                         save_checkpoint()
+                print(f"saved checkpoint in {i}")
             
             return i, result
         except Exception as e:
@@ -336,7 +328,6 @@ def map_with_progress(
     # Update completed results with new results
     for i, result in results_with_indices:
         completed_results[i] = result
-        completed_indices.add(i)
     
     # Save final checkpoint
     if checkpoint_file:

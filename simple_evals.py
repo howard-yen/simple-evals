@@ -445,7 +445,7 @@ def main():
         ),
         "gpt-researcher-o3": GPTResearcherSampler(
             report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher-o3-10.json"),
+            config_path=get_config_path("configs/gpt-researcher-o3.json"),
         ),
         "hf-odr-o3": SmolAgentSampler(
             model="azure/o3",
