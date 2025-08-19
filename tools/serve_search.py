@@ -125,7 +125,7 @@ INITIAL_RETRY_DELAY = 0.2
 
 
 @lru_cache(maxsize=8192)
-@cache.memoize(typed=True, expire=1e6, tag="serper")
+@cache.memoize(typed=True, expire=1e7, tag="serper")
 def serper_search(query: str, topk: int = 10) -> List[Dict]:
     url = "https://google.serper.dev/search"
     headers = {"X-API-KEY": os.environ["SERPER_API_KEY"], 'Content-Type': 'application/json'}
@@ -287,7 +287,7 @@ def _cached_get_content(url: str) -> Tuple[bool, str, str]:
 
 
 @lru_cache(maxsize=8192)
-@cache.memoize(typed=True, expire=1e6, tag="snippet")
+@cache.memoize(typed=True, expire=1e7, tag="snippet")
 def _cached_find_snippet(content: str, query: str, num_characters: int = 10000) -> str:
     """Cached function to find snippet in content."""
     if not query:

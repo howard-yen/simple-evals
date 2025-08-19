@@ -356,6 +356,13 @@ def main():
             max_search_limit=50,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "search-o1-tool-o4-mini-100": SearchO1ToolChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=100,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "gpt-researcher-o4-mini": GPTResearcherSampler(
             report_type="deep",
             config_path=get_config_path("configs/gpt-researcher-o4-mini.json"),
@@ -441,6 +448,13 @@ def main():
             max_tokens=32768,
             reasoning_model=True,
             max_search_limit=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-tool-o3-100": SearchO1ToolChatSampler(
+            model="azure/o3",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=100,
             extra_kwargs={"seed": args.model_seed}
         ),
         "gpt-researcher-o3": GPTResearcherSampler(
