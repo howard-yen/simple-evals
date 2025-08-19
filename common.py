@@ -291,21 +291,16 @@ def map_with_progress(
     def wrapped_f(item_tuple):
         i, x = item_tuple
         try:
-            print(f"processing item {i}")
             result = f(x)
-            print(f"processed item {i}")
             
             # Save result and update checkpoint if needed
             if checkpoint_file:
-                print(f"waiting for lock in {i}")
                 with checkpoint_lock:
-                    print(f"got the lock in {i}")
                     completed_results[i] = result
                     
                     # Save checkpoint periodically
                     if len(completed_results) % checkpoint_interval == 0:
                         save_checkpoint()
-                print(f"saved checkpoint in {i}")
             
             return i, result
         except Exception as e:
