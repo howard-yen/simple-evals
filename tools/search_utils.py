@@ -65,7 +65,7 @@ class WebSearchTool():
 
     def open_url(self, url: str, query: str = "") -> str:
         """Open a url and optionally search for a specific query. By default, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text."""
-        if not url or not url.strip():
+        if not url or not isinstance(url, str) or not url.strip():
             return "Please provide a url to open."
 
         payload = {"url": url, "query": query}
@@ -85,7 +85,7 @@ class WebSearchTool():
     def search_o1(self, query: str, topk: int = 10) -> str:
         """Search the web for information. Following search-o1's format."""
         if not query or not query.strip():
-            return "Search error: Please provide a query to search for."
+            return json.dumps({"output": "Search error: Please provide a query to search for.", "search_results": []})
 
         payload = json.dumps({"query": query, "topk": topk})
         response = requests.post(self.url + "/search_o1", data=payload)
