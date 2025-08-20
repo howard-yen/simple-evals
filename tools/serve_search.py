@@ -338,6 +338,8 @@ def search_o1_search(request: SearchRequest):
     from search_o1_utils import fetch_page_content, extract_snippet_with_context
     print(f"Search query: {request.query}")
     output = _cached_search_o1(request.query, topk=request.topk)
+    if isinstance(output, str):
+        return {"output": output, "search_results": []}
 
     # after getting the output, search o1 always fetches all the content of the urls
     urls = [info['url'] for info in output]
