@@ -364,8 +364,6 @@ class HealthBenchEval(Eval):
             grade_rubric_item,
             rubric_items,
             pbar=False,
-            checkpoint_file=checkpoint_file,
-            checkpoint_interval=checkpoint_interval,
         )
 
         # compute the overall score
@@ -501,6 +499,8 @@ class HealthBenchEval(Eval):
             self.examples,
             num_threads=self.n_threads,
             pbar=True,
+            checkpoint_interval=checkpoint_interval,
+            checkpoint_file=checkpoint_file,
         )
         final_metrics = _aggregate_get_clipped_mean(results)
         return final_metrics
