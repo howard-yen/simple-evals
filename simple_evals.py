@@ -321,6 +321,13 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "drreact-o4-mini-200": DrReactSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=200,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "search-o1-o4-mini-10": SearchO1ChatSampler(
             model="azure/o4-mini",
             max_tokens=32768,
@@ -361,6 +368,13 @@ def main():
             max_tokens=32768,
             reasoning_model=True,
             max_search_limit=100,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-tool-o4-mini-200": SearchO1ToolChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=200,
             extra_kwargs={"seed": args.model_seed}
         ),
         "gpt-researcher-o4-mini": GPTResearcherSampler(
@@ -412,6 +426,13 @@ def main():
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o3-200": DrReactSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=200,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
@@ -502,6 +523,43 @@ def main():
             max_iterations=100,
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "drreact-claude-4-sonnet-200": DrReactSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=200,
+            max_tokens=32768,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "search-o1-tool-claude-4-sonnet-10": SearchO1ToolChatSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=10,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "search-o1-tool-claude-4-sonnet-50": SearchO1ToolChatSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=50,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "search-o1-tool-claude-4-sonnet-100": SearchO1ToolChatSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=100,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "gpt-researcher-claude-4-sonnet": GPTResearcherSampler(
+            report_type="deep",
+            config_path=get_config_path("configs/gpt-researcher-claude-4-sonnet.json"),
+        ),
+        "hf-odr-claude-4-sonnet": SmolAgentSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+            verbosity_level=-1, # -1 for no logs, default is 1
         ),
 
         "kimi-k2-instruct": LiteLLMSampler(
