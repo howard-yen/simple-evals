@@ -30,6 +30,7 @@ from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYS
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.drreact_sampler import DrReactSampler, DRREACT_SYSTEM_MESSAGE
+from .sampler.drreact_summ_sampler import DrReactSummSampler, DRREACT_SUMMARIZED_SYSTEM_MESSAGE
 from .sampler.search_r1_sampler import SearchR1Sampler
 from .sampler.search_r1_chat_sampler import SearchR1ChatSampler
 from .sampler.search_o1_sampler import SearchO1ChatSampler
@@ -434,6 +435,14 @@ def main():
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=200,
             max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o3-200": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=200,
+            max_tokens=32768,
+            summary_interval=75,
             extra_kwargs={"seed": args.model_seed}
         ),
         "search-o1-o3-10": SearchO1ChatSampler(
