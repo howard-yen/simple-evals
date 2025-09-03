@@ -261,7 +261,7 @@ Now you should analyze each web page and find helpful information based on the c
                 return SamplerResponse(
                     response_text="",
                     response_metadata={"usage": None, "error": response},
-                    actual_queried_message_list=message_list,
+                    actual_queried_message_list=original_message_list,
                 )
             usage = get_usage_dict(response.usage)
             response_time = response._response_ms*1000
@@ -304,6 +304,8 @@ Now you should analyze each web page and find helpful information based on the c
                         # Perform search
                         search_results = self.search_tool.search_o1(search_query, topk=self.topk)
                         formatted_documents = search_results['output']
+                        if isinstance(formatted_documents, str):
+                            print("shouldn't be a str???", formatted_documents)
                         all_search_results.append(search_results['search_results'])
                         tool_time += time.time() - start_time
 
@@ -333,7 +335,7 @@ Now you should analyze each web page and find helpful information based on the c
                             return SamplerResponse(
                                 response_text="",
                                 response_metadata={"usage": None, "error": reasoning_response},
-                                actual_queried_message_list=message_list,
+                                actual_queried_message_list=original_message_list,
                             )
                         reasoning_usage = get_usage_dict(reasoning_response.usage)
                         reasoning_time = reasoning_response._response_ms*1000
