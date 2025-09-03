@@ -304,8 +304,6 @@ Now you should analyze each web page and find helpful information based on the c
                         # Perform search
                         search_results = self.search_tool.search_o1(search_query, topk=self.topk)
                         formatted_documents = search_results['output']
-                        if isinstance(formatted_documents, str):
-                            print("shouldn't be a str???", formatted_documents)
                         all_search_results.append(search_results['search_results'])
                         tool_time += time.time() - start_time
 
