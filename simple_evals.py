@@ -479,6 +479,25 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
+        "drreact-summ-o3-token-100-32k": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=32768,
+            summary_mode='token',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o3-token-100-64k": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=65536,
+            summary_mode='token',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
         "search-o1-o3-10": SearchO1ChatSampler(
             model="azure/o3",
             max_tokens=32768,
