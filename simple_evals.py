@@ -437,14 +437,48 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-200": DrReactSummSampler(
+
+        "drreact-summ-o3-100-25": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o3-100-50": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o3-150-25": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o3-150-50": DrReactSummSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o3-200-50": DrReactSummSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=200,
             max_tokens=32768,
-            summary_interval=75,
+            summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
+
         "search-o1-o3-10": SearchO1ChatSampler(
             model="azure/o3",
             max_tokens=32768,
@@ -496,7 +530,6 @@ def main():
             system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
             verbosity_level=-1, # -1 for no logs, default is 1
         ),
-
 
         "claude-4-sonnet": LiteLLMSampler(
             model="vertex_ai/claude-sonnet-4@20250514",

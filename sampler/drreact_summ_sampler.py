@@ -115,8 +115,6 @@ class DrReactSummSampler(SamplerBase):
             {"role": "user", "content": prompt},
         ]
         response = self.generate(messages)
-        print("input messages:", prompt)
-        print("summarization response:", response.choices[0].message.content)
         return response
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
