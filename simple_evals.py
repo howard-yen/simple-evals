@@ -351,6 +351,20 @@ def main():
             max_search_limit=100,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "search-o1-tool-o4-mini-1": SearchO1ToolChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=1,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-tool-o4-mini-5": SearchO1ToolChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=5,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "search-o1-tool-o4-mini-10": SearchO1ToolChatSampler(
             model="azure/o4-mini",
             max_tokens=32768,
