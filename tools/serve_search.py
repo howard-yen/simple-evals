@@ -13,7 +13,8 @@ from pydantic import BaseModel
 from urllib.parse import urlparse
 from rouge_score import rouge_scorer
 from diskcache import Cache
-from tqdm.contrib.concurrent import thread_map
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from crawl4ai.processors.pdf import PDFCrawlerStrategy, PDFContentScrapingStrategy
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
@@ -334,15 +335,25 @@ def search_open_url(request: SearchRequest):
     urls = [r['link'] for r in search_results]
     output = ""
 
-    content_results = thread_map(_cached_get_content, urls, max_workers=32, desc="Fetching URLs")
-    for i, (url, (success, content_or_error, raw_content)) in enumerate(zip(urls, content_results)):
-        if not success:
-            output += f"<URL {i}: {url}>\n<Error: {content_or_error}>\n"
-        else:
-            title = search_results[i].get('title', '') if i < len(search_results) else ''
-            output += f"<URL {i}: {url}>\n<Title: {title}>\n<Content>\n{content_or_error}\n</Content>\n"
+    with ThreadPoolExecutor(max_workers=32) as executor:
+        futures = {
+            executor.submit(_cached_get_content, url): url 
+            for url in urls
+        }
+        for i, future in enumerate(tqdm(as_completed(futures), desc="Fetching URLs", total=len(urls))):
+            url = futures[future]
+            try:
+                data = future.result()
+                if not data[0]:
+                    output += f"<URL {url}>\n<Error: {data[1]}>\n"
+                else:
+                    title = search_results[i].get('title', '') if i < len(search_results) else ''
+                    output += f"<URL {i}: {url}>\n<Title: {title}>\n<Content>\n{data[1]}\n</Content>\n"
+            except Exception as e:
+                output += f"<URL {url}>\n<Error: {str(e)}>\n"
 
     return {"output": output}
+
 
 @app.post("/search_r1")
 def search_r1_search(request: SearchRequest):
