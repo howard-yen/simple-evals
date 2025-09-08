@@ -606,6 +606,20 @@ def main():
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
+        "search-o1-tool-claude-4-sonnet-1": SearchO1ToolChatSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=1,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "search-o1-tool-claude-4-sonnet-5": SearchO1ToolChatSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=5,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
         "search-o1-tool-claude-4-sonnet-10": SearchO1ToolChatSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             max_tokens=32768,
