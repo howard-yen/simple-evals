@@ -29,6 +29,7 @@ from .sampler.claude_sampler import ClaudeCompletionSampler, CLAUDE_SYSTEM_MESSA
 from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE, SMOLAGENT_JSONAGENT_SYSTEM_MESSAGE
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
+from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
 from .sampler.drreact_sampler import DrReactSampler, DRREACT_SYSTEM_MESSAGE
 from .sampler.drreact_summ_sampler import DrReactSummSampler, DRREACT_SUMMARIZED_SYSTEM_MESSAGE
 from .sampler.search_r1_sampler import SearchR1Sampler
@@ -400,6 +401,13 @@ def main():
             model="azure/o3",
             max_tokens=32768,
             reasoning_model=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-o3-10": ReactSampler(
+            model="azure/o3",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=10,
+            max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
         "drreact-o3-10": DrReactSampler(

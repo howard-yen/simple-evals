@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from urllib.parse import urlparse
 from rouge_score import rouge_scorer
 from diskcache import Cache
+from tqdm.contrib.concurrent import thread_map
 
 from crawl4ai.processors.pdf import PDFCrawlerStrategy, PDFContentScrapingStrategy
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
@@ -324,6 +325,23 @@ def open_url(request: OpenUrlRequest):
     output = _cached_open_url(request.url, request.query)
     return {'output': output}
 
+
+@app.post("/search_open_url")
+def search_open_url(request: SearchRequest):
+    print(f"Search query: {request.query}")
+    results = serper_search(request.query, topk=request.topk)
+    results = [r for r in results['organic'] if "link" in r]
+    urls = [r['link'] for r in results]
+    output = ""
+
+    with thread_map(_cached_get_content, urls, max_workers=32, desc="Fetching URLs") as results:
+        for i, (url, (success, content_or_error, raw_content)) in enumerate(zip(urls, results)):
+            if not success:
+                output += f"<URL {i}: {url}>\n<Error: {content_or_error}>\n"
+            else:
+                output += f"<URL {i}: {url}>\n<Title: {results[i].get('title', '')}>\n<Content>\n{content_or_error}\n</Content>\n"
+
+    return {"output": output}
 
 @app.post("/search_r1")
 def search_r1_search(request: SearchRequest):

@@ -73,6 +73,15 @@ class WebSearchTool():
         response = requests.post(self.url + "/open_url", data=payload)
         return response.json()['output']
 
+    def search_open_url(self, query: str, topk: int = 10) -> str:
+        """Search the web for information. Following search-open-url's format."""
+        if not query or not query.strip():
+            return "Search error: Please provide a query to search for."
+
+        payload = json.dumps({"query": query, "topk": topk})
+        response = requests.post(self.url + "/search_open_url", data=payload)
+        return response.json()['output']
+
     def search_r1(self, query: str, topk: int = 10) -> str:
         """Search the web for information. Following search-r1's format."""
         if not query or not query.strip():

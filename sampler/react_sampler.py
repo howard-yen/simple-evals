@@ -6,23 +6,23 @@ import copy
 import random
 import requests
 
-from retrievaltools import load_retriever, RetrieverOptions
-
 from ..types import MessageList, SamplerBase, SamplerResponse
+from ..common import get_usage_dict
+from ..tools.search_utils import WebSearchTool
 
 import litellm
 
-SEARCH_TOOL = [{
+SEARCH_TOOL = {
     "type": "function",
     "function": {
         "name": "search",
-        "description": "Search the web",
+        "description": "Search the web for information. This tool will return a list of urls with their content.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The user question or search query."
+                    "description": "The search query."
                 },
             },
             "required": [
@@ -32,11 +32,11 @@ SEARCH_TOOL = [{
         },
         "strict": True
     }
-}]
+}
 
 REACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
-When using the search tool, you should think carefully about the question, decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again.
-After you have collected all the information you need, you may first summarize and reason about the information, and then write your final answer."""
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
+The search tool will return a list of urls and their content. After you have collected all the information you need, you should complete the given task."""
 
 
 class ReactSampler(SamplerBase):
@@ -56,21 +56,12 @@ class ReactSampler(SamplerBase):
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.extra_kwargs = extra_kwargs
-
-        self.retriever_options = RetrieverOptions(
-            retriever_type="web",
-            include_corpus=False,
-            port=8000,
-            topk=topk,
-            use_cache=False,
-            web_scraping="crawl4ai",
-            verbose=False,
-        )
-        self.retriever = load_retriever(self.retriever_options)
+        self.web_search_tool = WebSearchTool(topk=topk)
 
 
     def _pack_message(self, role, content):
         return {"role": str(role), "content": content}
+
 
     def generate(self, message_list: MessageList, **kwargs):
         trial = 0
@@ -82,29 +73,41 @@ class ReactSampler(SamplerBase):
                     messages=message_list,
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
+                    timeout=7200,
                     **kwargs
                 )
                 message = response['choices'][0]['message']
-                if message['content'] is None and message.get("tool_calls") is None:
+                if message['content'] is None and message.get("tool_calls") is None and message.get("reasoning_content") is None:
+                    print(f"LiteLLM returned empty response: {response}")
                     raise ValueError("Litellm API returned empty response; retrying")
+                
                 return response
 
             except litellm.BadRequestError as e:
-                print("Bad Request Error", e)
-                raise e
-                
+                print(f"Bad request error: {e}. Returning empty response.")
+                return f"Bad request error: {e}. Returning empty response."
+            
+            except litellm.APIConnectionError as e:
+                print(f"API connection error: {e}. Returning empty response.")
+                return f"API connection error: {e}. Returning empty response."
+
             except Exception as e:
+                if trial >= 5:
+                    return f"Error: {e}. Returning empty response after 5 trials."
+                    
                 exception_backoff = 2**trial  # exponential back off
-                print(
-                    f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec",
-                    e,
-                )
+                exception_backoff = min(exception_backoff, 120)
+                print(f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}")
                 time.sleep(exception_backoff)
                 trial += 1
+
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
         cur_iter = 0
         extra_convo = []
+        all_usages = []
+        generation_time = 0
+        tool_time = 0
         if self.system_message:
             message_list = [
                 self._pack_message("developer", self.system_message)
@@ -112,65 +115,77 @@ class ReactSampler(SamplerBase):
         original_message_list = copy.deepcopy(message_list)
         
         while cur_iter < self.max_iterations:
+            cur_iter += 1
             print(f"Iteration {cur_iter}\n")
-            fallback = False
-            try:
-                response = self.generate(message_list, tools=SEARCH_TOOL)
-            except Exception as e:
-                print(f"Error in iteration {cur_iter}: {e}. Falling back to not using tools.")
-                # it's possible that this generate call will fail, we need to handle this case.
-                try:
-                    response = self.generate(original_message_list)
-                    fallback = True
-                    break
-                except Exception as fallback_error:
-                    print(f"Fallback response also failed: {fallback_error}. Returning empty response.")
+            if cur_iter == self.max_iterations:
+                response = self.generate(message_list)
+            else:
+                response = self.generate(message_list, tools=[SEARCH_TOOL])
+
+            if isinstance(response, str):
+                print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
+                response = self.generate(original_message_list)
+                tool_time = 0
+                if isinstance(response, str):
                     return SamplerResponse(
                         response_text="",
-                        response_metadata={"usage": None, "fallback": True},
+                        response_metadata={"usage": None, "fallback": True, "error": response},
                         actual_queried_message_list=original_message_list,
                     )
-
-            cur_iter += 1
-            # if search tool, call retriever, otherwise return the response
+                generation_time = response._response_ms*1000
+            
             message = response.choices[0].message
-            tool_calls = message.get("tool_calls")
+            tool_calls = message.get("tool_calls", None)
+            all_usages.append(get_usage_dict(response.usage))
+            generation_time += response._response_ms*1000
 
-            # if we reached the max iterations and we still call the tool, we fallback to not using tools
-            if tool_calls and cur_iter == self.max_iterations:
-                print("Fallback to not using tools")
-                response = self.generate(original_message_list)
-                fallback = True
-                
-            elif tool_calls:
-                print("Using tools")
+            if message.get('reasoning_content'):
+                reasoning_content = message.get('reasoning_content')
+                extra_convo.append(self._pack_message("assistant thinking", reasoning_content))
+
+            if tool_calls:
                 message_list.append(message)
+                start_time = time.time()
                 for tool_call in tool_calls:
                     function_args = json.loads(tool_call.function.arguments)
                     print(f"Function args: {function_args}")
-                    function_response = self.retriever.retrieve(**function_args)[0]
+
+                    if tool_call.function.name != "search":
+                        tool_response = f"Error: {tool_call.function.name} is not a valid tool. Please use the search tool."
+                    else:
+                        if "query" not in function_args:
+                            tool_response = f"Error: Please provide a query to search for in the function arguments."
+                        else:
+                            tool_response = self.web_search_tool.search_open_url(function_args["query"])
+
                     tool_message = {
-                            "tool_call_id": tool_call.id,
-                            "role": "tool",
-                            "name": tool_call.function.name,
-                            "content": self.retriever.format_results(function_response, topk=self.retriever_options.topk),
-                        }
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": tool_call.function.name,
+                        "content": tool_response,
+                    }
                     message_list.append(tool_message)
-                    extra_convo.append(self._pack_message(f"tool call iter {cur_iter} {tool_call.function.name}", tool_call.function.arguments))
+                    extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name} {cur_iter}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
+
+                tool_time += time.time() - start_time
 
             else:
                 print("No tools used")
                 break
 
         metadata = {
-            "fallback": fallback,
+            "fallback": False,
             "extra_convo": extra_convo,
-            "usage": response.usage
+            "usage": all_usages,
+            "tool_time": tool_time,
+            "generation_time": generation_time,
+            "latency": generation_time + tool_time,
         }
         message = response['choices'][0]['message']
+        response_text = message['content'] if message['content'] is not None else ""
         return SamplerResponse(
-            response_text=message['content'],
+            response_text=response_text,
             response_metadata=metadata,
             actual_queried_message_list=original_message_list,
         )
