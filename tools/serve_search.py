@@ -329,17 +329,18 @@ def open_url(request: OpenUrlRequest):
 @app.post("/search_open_url")
 def search_open_url(request: SearchRequest):
     print(f"Search query: {request.query}")
-    results = serper_search(request.query, topk=request.topk)
-    results = [r for r in results['organic'] if "link" in r]
-    urls = [r['link'] for r in results]
+    search_results = serper_search(request.query, topk=request.topk)
+    search_results = [r for r in search_results['organic'] if "link" in r]
+    urls = [r['link'] for r in search_results]
     output = ""
 
-    with thread_map(_cached_get_content, urls, max_workers=32, desc="Fetching URLs") as results:
-        for i, (url, (success, content_or_error, raw_content)) in enumerate(zip(urls, results)):
-            if not success:
-                output += f"<URL {i}: {url}>\n<Error: {content_or_error}>\n"
-            else:
-                output += f"<URL {i}: {url}>\n<Title: {results[i].get('title', '')}>\n<Content>\n{content_or_error}\n</Content>\n"
+    content_results = thread_map(_cached_get_content, urls, max_workers=32, desc="Fetching URLs")
+    for i, (url, (success, content_or_error, raw_content)) in enumerate(zip(urls, content_results)):
+        if not success:
+            output += f"<URL {i}: {url}>\n<Error: {content_or_error}>\n"
+        else:
+            title = search_results[i].get('title', '') if i < len(search_results) else ''
+            output += f"<URL {i}: {url}>\n<Title: {title}>\n<Content>\n{content_or_error}\n</Content>\n"
 
     return {"output": output}
 
