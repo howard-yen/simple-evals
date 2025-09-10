@@ -337,6 +337,38 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "drreact-summ-o4-mini-100-25": DrReactSummSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o4-mini-100-50": DrReactSummSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o4-mini-150-25": DrReactSummSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-summ-o4-mini-150-50": DrReactSummSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "search-o1-o4-mini-10": SearchO1ChatSampler(
             model="azure/o4-mini",
             max_tokens=32768,
