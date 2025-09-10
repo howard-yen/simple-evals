@@ -323,6 +323,13 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "drreact-o4-mini-150": DrReactSampler(
+            model="azure/o4-mini",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "drreact-o4-mini-200": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
@@ -449,6 +456,13 @@ def main():
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-o3-150": DrReactSampler(
+            model="azure/o3",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
