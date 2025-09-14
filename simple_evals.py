@@ -295,6 +295,27 @@ def main():
             reasoning_model=True,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "react-o4-mini-1": ReactSampler(
+            model="azure/o4-mini",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=1,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-o4-mini-5": ReactSampler(
+            model="azure/o4-mini",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=5,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-o4-mini-10": ReactSampler(
+            model="azure/o4-mini",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=10,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "drreact-o4-mini-10": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
@@ -302,10 +323,10 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o4-mini-20": DrReactSampler(
+        "drreact-o4-mini-25": DrReactSampler(
             model="azure/o4-mini",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=20,
+            max_iterations=25,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
@@ -411,6 +432,13 @@ def main():
             max_search_limit=10,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "search-o1-tool-o4-mini-25": SearchO1ToolChatSampler(
+            model="azure/o4-mini",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "search-o1-tool-o4-mini-50": SearchO1ToolChatSampler(
             model="azure/o4-mini",
             max_tokens=32768,
@@ -456,6 +484,20 @@ def main():
             reasoning_model=True,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "react-o3-1": ReactSampler(
+            model="azure/o3",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=1,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-o3-5": ReactSampler(
+            model="azure/o3",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=5,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "react-o3-10": ReactSampler(
             model="azure/o3",
             system_message=REACT_SYSTEM_MESSAGE,
@@ -470,10 +512,10 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-20": DrReactSampler(
+        "drreact-o3-25": DrReactSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=20,
+            max_iterations=25,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
@@ -608,6 +650,13 @@ def main():
             max_search_limit=10,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "search-o1-tool-o3-25": SearchO1ToolChatSampler(
+            model="azure/o3",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "search-o1-tool-o3-50": SearchO1ToolChatSampler(
             model="azure/o3",
             max_tokens=32768,
@@ -639,6 +688,27 @@ def main():
             reasoning_model=True,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
+        "react-claude-4-sonnet-1": ReactSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=1,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-claude-4-sonnet-5": ReactSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=5,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "react-claude-4-sonnet-10": ReactSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=10,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "drreact-claude-4-sonnet-10": DrReactSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=DRREACT_SYSTEM_MESSAGE,
@@ -646,10 +716,10 @@ def main():
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-claude-4-sonnet-20": DrReactSampler(
+        "drreact-claude-4-sonnet-25": DrReactSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=20,
+            max_iterations=25,
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
@@ -695,6 +765,13 @@ def main():
             max_search_limit=10,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
+        "search-o1-tool-claude-4-sonnet-25": SearchO1ToolChatSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=25,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
         "search-o1-tool-claude-4-sonnet-50": SearchO1ToolChatSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             max_tokens=32768,
@@ -735,6 +812,18 @@ def main():
             model="together_ai/moonshotai/Kimi-K2-Instruct",
             system_message=DRREACT_SYSTEM_MESSAGE,
             max_iterations=100,
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "gpt-oss-120b": LiteLLMSampler(
+            model="together_ai/openai/gpt-oss-120b",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "drreact-gpt-oss-120b-10": DrReactSampler(
+            model="together_ai/openai/gpt-oss-120b",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
