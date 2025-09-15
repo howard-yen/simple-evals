@@ -396,7 +396,7 @@ def search_o1_search(request: SearchRequest):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8005)
+    parser.add_argument("--port", type=int, default=8006)
     args = parser.parse_args()
     assert os.environ["SERPER_API_KEY"] is not None, "SERPER_API_KEY is not set"
 
