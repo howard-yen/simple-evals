@@ -34,8 +34,8 @@ SEARCH_TOOL = {
     }
 }
 
-REACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
-When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
+REACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encouraged to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you should refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
 The search tool will return a list of urls and their content. After you have collected all the information you need, you should complete the given task."""
 
 
@@ -114,14 +114,14 @@ class ReactSampler(SamplerBase):
             ] + message_list
         original_message_list = copy.deepcopy(message_list)
         
-        while cur_iter < self.max_iterations:
-            cur_iter += 1
+        while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
             if cur_iter == self.max_iterations:
                 response = self.generate(message_list)
             else:
                 response = self.generate(message_list, tools=[SEARCH_TOOL])
 
+            import pdb; pdb.set_trace()
             if isinstance(response, str):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
@@ -173,6 +173,8 @@ class ReactSampler(SamplerBase):
             else:
                 print("No tools used")
                 break
+
+            cur_iter += 1
 
         metadata = {
             "fallback": False,

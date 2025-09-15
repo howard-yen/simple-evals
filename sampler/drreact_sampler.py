@@ -95,13 +95,12 @@ class DrReactSampler(SamplerBase):
         tool_time = 0
         if self.system_message:
             message_list = [
-                self._pack_message("developer", self.system_message)
+                self._pack_message("developer" if not self.model.startswith("together_ai/") else "system", self.system_message)
             ] + message_list
         original_message_list = copy.deepcopy(message_list)
         queries = set()
         
-        while cur_iter < self.max_iterations:
-            cur_iter += 1
+        while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
             if cur_iter == self.max_iterations:
                 response = self.generate(message_list)
@@ -121,6 +120,9 @@ class DrReactSampler(SamplerBase):
                 generation_time = response._response_ms*1000
 
             message = response.choices[0].message
+            if self.model.startswith("together_ai/"):
+                message = message.to_dict()
+
             tool_calls = message.get("tool_calls", None)
             all_usages.append(get_usage_dict(response.usage))
             generation_time += response._response_ms*1000
@@ -133,11 +135,12 @@ class DrReactSampler(SamplerBase):
                 message_list.append(message)
                 start_time = time.time()
                 for tool_call in tool_calls:
-                    function_args = json.loads(tool_call.function.arguments)
+                    tool_name = tool_call['function']['name']
+                    function_args = json.loads(tool_call['function']['arguments'])
                     print(f"Function args: {function_args}")
-                    tool_counts[tool_call.function.name] += 1
+                    tool_counts[tool_name] += 1
 
-                    if tool_call.function.name == "search":
+                    if tool_name == "search":
                         if "query" not in function_args:
                             tool_response = f"Error: Please provide a query to search for in the function arguments."
                         elif self.track_queries and function_args["query"] in queries:
@@ -146,30 +149,32 @@ class DrReactSampler(SamplerBase):
                             tool_response = self.web_search_tool.search(function_args["query"])
                             queries.add(function_args["query"])
                         
-                    elif tool_call.function.name == "visit":
+                    elif tool_name == "visit":
                         if "url" not in function_args:
                             tool_response = f"Error: Please provide a url to visit in the function arguments."
                         else:
                             tool_response = self.web_search_tool.open_url(function_args["url"], function_args.get("query", ""))
                     
                     else:
-                        tool_response = f"Error: Unknown tool: {tool_call.function.name}"
+                        tool_response = f"Error: Unknown tool: {tool_name}"
 
                     tool_message = {
-                        "tool_call_id": tool_call.id,
+                        "tool_call_id": tool_call['id'],
                         "role": "tool",
-                        "name": tool_call.function.name,
+                        "name": tool_name,
                         "content": tool_response,
                     }
                     
                     message_list.append(tool_message)
-                    extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name} {cur_iter}", tool_call.function.arguments))
+                    extra_convo.append(self._pack_message(f"tool_call {tool_name} {cur_iter}", function_args))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
                 tool_time += time.time() - start_time
 
             else:
                 print("No tools used")
                 break
+
+            cur_iter += 1
 
         metadata = {
             "fallback": False,

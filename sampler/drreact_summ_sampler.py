@@ -133,8 +133,7 @@ class DrReactSummSampler(SamplerBase):
         original_message_list = copy.deepcopy(message_list)
         queries = set()
         
-        while cur_iter < self.max_iterations:
-            cur_iter += 1
+        while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
 
             if (self.summary_mode == "turn" and cur_iter % self.summary_interval == 0) or (self.summary_mode == "token" and len(agent_usages) > 0 and agent_usages[-1]["input_tokens"] > self.summary_interval):
@@ -219,6 +218,8 @@ class DrReactSummSampler(SamplerBase):
             else:
                 print("No tools used")
                 break
+
+            cur_iter += 1
 
         metadata = {
             "fallback": False,
