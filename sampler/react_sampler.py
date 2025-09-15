@@ -121,7 +121,6 @@ class ReactSampler(SamplerBase):
             else:
                 response = self.generate(message_list, tools=[SEARCH_TOOL])
 
-            import pdb; pdb.set_trace()
             if isinstance(response, str):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
