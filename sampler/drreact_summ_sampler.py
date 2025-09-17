@@ -136,7 +136,7 @@ class DrReactSummSampler(SamplerBase):
         while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
 
-            if (self.summary_mode == "turn" and cur_iter % self.summary_interval == 0) or (self.summary_mode == "token" and len(agent_usages) > 0 and agent_usages[-1]["input_tokens"] > self.summary_interval):
+            if (self.summary_mode == "turn" and (cur_iter+1) % self.summary_interval == 0) or (self.summary_mode == "token" and len(agent_usages) > 0 and agent_usages[-1]["input_tokens"] > self.summary_interval):
                 response  = self._summarize(message_list)
                 if isinstance(response, str):
                     print("Error in summarization. Falling back to not summarizing.")
