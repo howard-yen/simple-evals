@@ -8,6 +8,7 @@ import pandas as pd
 
 from . import common
 from .browsecomp_eval import BrowseCompEval
+from .browsecomp_replay_eval import BrowseCompReplayEval
 from .drop_eval import DropEval
 from .gpqa_eval import GPQAEval
 from .healthbench_eval import HealthBenchEval
@@ -935,6 +936,22 @@ def main():
             case "browsecomp":
                 return BrowseCompEval(
                     grader_model=grading_sampler,
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
+                )
+            case "browsecomp_replay_5":
+                return BrowseCompReplayEval(
+                    grader_model=grading_sampler,
+                    data_path="simple-evals/data/browsecomp_truncated_trajectories_5.jsonl",
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
+                )
+            case "browsecomp_replay_10":
+                return BrowseCompReplayEval(
+                    grader_model=grading_sampler,
+                    data_path="simple-evals/data/browsecomp_truncated_trajectories_10.jsonl",
                     num_examples=10 if debug_mode else num_examples,
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,

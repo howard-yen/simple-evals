@@ -87,7 +87,8 @@ class DrReactSampler(SamplerBase):
 
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
-        cur_iter = 0
+        # for the replay setting, we need to count how many tools have been used, defaults to 0
+        cur_iter = len([m for m in message_list if m['role'] == 'tool'])
         extra_convo = []
         all_usages = []
         tool_counts = defaultdict(lambda: 0)

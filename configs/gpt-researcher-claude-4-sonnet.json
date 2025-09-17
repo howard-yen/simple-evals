@@ -1,0 +1,6 @@
+{
+    "RETRIEVER": "serper",
+    "FAST_LLM": "litellm:vertex_ai/claude-sonnet-4@20250514",
+    "SMART_LLM": "litellm:vertex_ai/claude-sonnet-4@20250514",
+    "STRATEGIC_LLM": "litellm:vertex_ai/claude-sonnet-4@20250514"
+}
