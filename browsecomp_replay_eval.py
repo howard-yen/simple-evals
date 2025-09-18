@@ -144,7 +144,7 @@ class BrowseCompReplayEval(Eval):
             grade_result["response_text"] = response_text
             grade_result["response_metadata"] = sampler_response.response_metadata
             grade_result['original_correctness'] = row['original_correctness']
-            grade_result['original_max_length'] = row['original_max_length']
+            # grade_result['original_max_length'] = row['original_max_length']
             grade_result['original_total_tools'] = row['original_total_tools']
 
             grade_result["question"] = question

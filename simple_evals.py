@@ -956,6 +956,22 @@ def main():
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
                 )
+            case "browsecomp_concat_5":
+                return BrowseCompReplayEval(
+                    grader_model=grading_sampler,
+                    data_path="simple-evals/data/browsecomp_concat_trajectories_5.jsonl",
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
+                )
+            case "browsecomp_concat_10":
+                return BrowseCompReplayEval(
+                    grader_model=grading_sampler,
+                    data_path="simple-evals/data/browsecomp_concat_trajectories_10.jsonl",
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
+                )
             case "healthbench":
                 return HealthBenchEval(
                     grader_model=grading_sampler,
