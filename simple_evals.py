@@ -391,27 +391,6 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "search-o1-o4-mini-10": SearchO1ChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-o4-mini-50": SearchO1ChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-o4-mini-100": SearchO1ChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=100,
-            extra_kwargs={"seed": args.model_seed}
-        ),
         "search-o1-tool-o4-mini-1": SearchO1ToolChatSampler(
             model="azure/o4-mini",
             max_tokens=32768,
@@ -452,13 +431,6 @@ def main():
             max_tokens=32768,
             reasoning_model=True,
             max_search_limit=100,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-200": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=200,
             extra_kwargs={"seed": args.model_seed}
         ),
         "gpt-researcher-o4-mini": GPTResearcherSampler(
@@ -609,27 +581,6 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
-        "search-o1-o3-10": SearchO1ChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-o3-50": SearchO1ChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-o3-100": SearchO1ChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=100,
-            extra_kwargs={"seed": args.model_seed}
-        ),
         "search-o1-tool-o3-1": SearchO1ToolChatSampler(
             model="azure/o3",
             max_tokens=32768,
