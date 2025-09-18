@@ -745,6 +745,40 @@ def main():
             max_tokens=32768,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
+
+        "drreact-summ-claude-4-sonnet-100-25": DrReactSummSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "drreact-summ-claude-4-sonnet-100-50": DrReactSummSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "drreact-summ-claude-4-sonnet-150-25": DrReactSummSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "drreact-summ-claude-4-sonnet-150-50": DrReactSummSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=DRREACT_SYSTEM_MESSAGE,
+            max_iterations=150,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+
         "search-o1-tool-claude-4-sonnet-1": SearchO1ToolChatSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             max_tokens=32768,
