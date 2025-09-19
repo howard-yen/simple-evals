@@ -42,10 +42,13 @@ class DrReactSummSampler(SamplerBase):
         track_queries: bool=False,
         summary_interval: int=50,
         summary_mode: str="turn",
+        use_summary_system_message: bool=False,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
         self.system_message = system_message + f"\nYou are allowed to use the at most {max_iterations} tool calls."
+        if use_summary_system_message:
+            self.system_message = DRREACT_SUMMARIZED_SYSTEM_MESSAGE
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -108,8 +111,14 @@ class DrReactSummSampler(SamplerBase):
         for message in message_list:
             if message['role'] == "developer" or message['role'] == "system":
                 continue
-            prompt += f"<role>{message['role']}</role>\n<message>{message['content']}</message>\n\n"
-        
+            if message.get('tool_calls') is not None:
+                func = message['tool_calls'][0]['function']
+                if not isinstance(func, dict):
+                    func = func.to_dict()
+                prompt += f"<role>{message['role']}</role>\n<message>{message['content']}</message>\n<tool_calls>{json.dumps(func)}</tool_calls>\n\n"
+            else:
+                prompt += f"<role>{message['role']}</role>\n<message>{message['content']}</message>\n\n"
+                
         messages = [
             {"role": "system", "content": SUMMARY_SYSTEM_MESSAGE},
             {"role": "user", "content": prompt},
