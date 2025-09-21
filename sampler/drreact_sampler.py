@@ -91,7 +91,7 @@ class DrReactSampler(SamplerBase):
         cur_iter = len([m for m in message_list if m['role'] == 'tool'])
         extra_convo = []
         all_usages = []
-        tool_counts = defaultdict(lambda: 0)
+        tool_counts = defaultdict(int)
         generation_time = 0
         tool_time = 0
         if self.system_message:
@@ -181,7 +181,7 @@ class DrReactSampler(SamplerBase):
             "fallback": False,
             "extra_convo": extra_convo,
             "usage": all_usages,
-            "tool_counts": tool_counts,
+            "tool_counts": dict(tool_counts),
             "tool_time": tool_time,
             "generation_time": generation_time,
             "latency": generation_time + tool_time,

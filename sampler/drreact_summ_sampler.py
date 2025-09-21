@@ -132,7 +132,7 @@ class DrReactSummSampler(SamplerBase):
         all_usages = []
         summ_usages = []
         agent_usages = []
-        tool_counts = defaultdict(lambda: 0)
+        tool_counts = defaultdict(int)
         generation_time = 0
         tool_time = 0
         assert self.system_message, "System message is required for DrReactSampler"
@@ -236,7 +236,7 @@ class DrReactSummSampler(SamplerBase):
             "usage": all_usages,
             "agent_usages": agent_usages,
             "summ_usages": summ_usages,
-            "tool_counts": tool_counts,
+            "tool_counts": dict(tool_counts),
             "tool_time": tool_time,
             "generation_time": generation_time,
             "latency": generation_time + tool_time,
