@@ -46,9 +46,10 @@ class DrReactSummSampler(SamplerBase):
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
-        self.system_message = system_message + f"\nYou are allowed to use the at most {max_iterations} tool calls."
         if use_summary_system_message:
             self.system_message = DRREACT_SUMMARIZED_SYSTEM_MESSAGE
+        else:
+            self.system_message = system_message + f"\nYou are allowed to use the at most {max_iterations} tool calls."
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
