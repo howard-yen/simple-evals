@@ -521,6 +521,15 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
+        # this is only for an ablation
+        "drreact-summ-o3-50-50": DrReactSummSampler(
+            model="azure/o3",
+            use_summary_system_message=True,
+            max_iterations=50,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "drreact-summ-o3-100-25": DrReactSummSampler(
             model="azure/o3",
             system_message=DRREACT_SYSTEM_MESSAGE,
@@ -925,15 +934,7 @@ def main():
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
                 )
-            case "browsecomp_replay_5":
-                return BrowseCompReplayEval(
-                    grader_model=grading_sampler,
-                    data_path="simple-evals/data/browsecomp_truncated_trajectories_5.jsonl",
-                    num_examples=10 if debug_mode else num_examples,
-                    n_repeats=args.n_repeats or 1,
-                    n_threads=args.n_threads or 1,
-                )
-            case "browsecomp_replay_10":
+            case "browsecomp_truncated":
                 return BrowseCompReplayEval(
                     grader_model=grading_sampler,
                     data_path="simple-evals/data/browsecomp_truncated_trajectories_10.jsonl",
@@ -941,18 +942,18 @@ def main():
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
                 )
-            case "browsecomp_concat_5":
+            case "browsecomp_concat":
                 return BrowseCompReplayEval(
                     grader_model=grading_sampler,
-                    data_path="simple-evals/data/browsecomp_concat_trajectories_5.jsonl",
+                    data_path="simple-evals/data/browsecomp_concat_trajectories_10.jsonl",
                     num_examples=10 if debug_mode else num_examples,
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
                 )
-            case "browsecomp_concat_10":
+            case "browsecomp_summ":
                 return BrowseCompReplayEval(
                     grader_model=grading_sampler,
-                    data_path="simple-evals/data/browsecomp_concat_trajectories_10.jsonl",
+                    data_path="simple-evals/data/browsecomp_summ_trajectories_10.jsonl",
                     num_examples=10 if debug_mode else num_examples,
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
