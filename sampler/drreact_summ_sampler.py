@@ -56,6 +56,7 @@ class DrReactSummSampler(SamplerBase):
         self.track_queries = track_queries
         self.summary_interval = summary_interval
         self.summary_mode = summary_mode
+        self.all_summaries = []
         self.extra_kwargs = extra_kwargs
         self.web_search_tool = WebSearchTool(topk=topk)
 
@@ -146,20 +147,6 @@ class DrReactSummSampler(SamplerBase):
         while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
 
-            if (self.summary_mode == "turn" and (cur_iter+1) % self.summary_interval == 0) or (self.summary_mode == "token" and len(agent_usages) > 0 and agent_usages[-1]["input_tokens"] > self.summary_interval):
-                response  = self._summarize(message_list)
-                if isinstance(response, str):
-                    print("Error in summarization. Falling back to not summarizing.")
-                else:
-                    summary_text = f"{response.choices[0].message.content}"
-                    summ_usages.append(get_usage_dict(response.usage))
-                    all_usages.append(summ_usages[-1])
-                    extra_convo.append(self._pack_message("user", summary_text))
-                    message_list = copy.deepcopy(original_message_list)
-                    message_list[0]['content'] = DRREACT_SUMMARIZED_SYSTEM_MESSAGE
-                    message_list.append(self._pack_message("user", summary_text))
-                    generation_time += response._response_ms*1000
-
             if cur_iter == self.max_iterations:
                 response = self.generate(message_list)
             else:
@@ -228,6 +215,24 @@ class DrReactSummSampler(SamplerBase):
             else:
                 print("No tools used")
                 break
+
+            # summarization step
+            if (self.summary_mode == "turn" and (cur_iter+1) % self.summary_interval == 0) or (self.summary_mode == "token" and len(agent_usages) > 0 and agent_usages[-1]["input_tokens"] > self.summary_interval):
+                response  = self._summarize(message_list)
+                if isinstance(response, str):
+                    print("Error in summarization. Falling back to not summarizing.")
+                else:
+                    summary_text = f"{response.choices[0].message.content}"
+                    summ_usages.append(get_usage_dict(response.usage))
+                    all_usages.append(summ_usages[-1])
+                    extra_convo.append(self._pack_message("user", summary_text))
+                    self.all_summaries.append(summary_text)
+                    message_list = copy.deepcopy(original_message_list)
+                    message_list[0]['content'] = DRREACT_SUMMARIZED_SYSTEM_MESSAGE
+                    if len(self.all_summaries) > 0:
+                        summary_text = "Summary of the work done so far:\n\n" +  "\n".join([f'Step {i+1}: {summary}' for i, summary in enumerate(self.all_summaries)])
+                    message_list.append(self._pack_message("user", summary_text))
+                    generation_time += response._response_ms*1000
 
             cur_iter += 1
 
