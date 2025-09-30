@@ -15,12 +15,13 @@ from ..tools.search_utils import WebSearchTool, SEARCH_TOOL, VISIT_TOOL
 import litellm
 
 
-DRREACT_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+SLIM_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
 When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
 The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
 After you have collected all the information you need, you should complete the given task."""
 
-DRREACT_SUMMARIZED_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+
+SLIM_SUMMARIZED_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
 When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
 The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
 After you have collected all the information you need, you should complete the given task.
@@ -30,7 +31,7 @@ You are given a summary of work done so far, which contains relevant information
 SUMMARY_SYSTEM_MESSAGE = """You are a helpful assistant that can summarize the information in the messages. You should summarize key information in the messages. Key information may include search queries issues, urls visited, and relevant results, but you may include other useful information as well. The summary will be given back to the original assistant in place of the messages to continue the completion of the task, so make sure to include all key and relevant information."""
 
 
-class DrReactSummSampler(SamplerBase):
+class SlimSampler(SamplerBase):
     def __init__(
         self, 
         model: str, 
@@ -39,7 +40,9 @@ class DrReactSummSampler(SamplerBase):
         max_tokens: int=1024,
         temperature: float=1.0,
         topk: int=10,
-        track_queries: bool=False,
+        content_length: int=10000,
+        scoring_func: str="rouge",
+        chunking_func: str="newline",
         summary_interval: int=50,
         summary_mode: str="turn",
         use_summary_system_message: bool=False,
@@ -47,18 +50,22 @@ class DrReactSummSampler(SamplerBase):
     ):
         self.model = model
         if use_summary_system_message:
-            self.system_message = DRREACT_SUMMARIZED_SYSTEM_MESSAGE
+            self.system_message = SLIM_SUMMARIZED_SYSTEM_MESSAGE
         else:
-            self.system_message = system_message + f"\nYou are allowed to use the at most {max_iterations} tool calls."
+            self.system_message = system_message
+        assert self.system_message, "System message is required for SlimSampler"
         self.max_iterations = max_iterations
         self.max_tokens = max_tokens
         self.temperature = temperature
-        self.track_queries = track_queries
         self.summary_interval = summary_interval
         self.summary_mode = summary_mode
         self.all_summaries = []
         self.extra_kwargs = extra_kwargs
-        self.web_search_tool = WebSearchTool(topk=topk)
+        self.web_search_tool = WebSearchTool()
+        self.topk = topk
+        self.content_length = content_length
+        self.scoring_func = scoring_func
+        self.chunking_func = chunking_func
 
 
     def _pack_message(self, role, content):
@@ -123,7 +130,7 @@ class DrReactSummSampler(SamplerBase):
                 
         messages = [
             {"role": "system", "content": SUMMARY_SYSTEM_MESSAGE},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": "Here is the conversation you should summarize. Do not complete the task, just summarize the information in the conversation:\n\n{prompt}"},
         ]
         response = self.generate(messages)
         return response
@@ -135,14 +142,11 @@ class DrReactSummSampler(SamplerBase):
         summ_usages = []
         agent_usages = []
         tool_counts = defaultdict(int)
-        generation_time = 0
-        tool_time = 0
-        assert self.system_message, "System message is required for DrReactSampler"
+        fallback = False
         message_list = [
             self._pack_message("developer", self.system_message)
         ] + message_list
         original_message_list = copy.deepcopy(message_list)
-        queries = set()
         
         while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
@@ -155,20 +159,18 @@ class DrReactSummSampler(SamplerBase):
             if isinstance(response, str):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
                 response = self.generate(original_message_list)
-                tool_time = 0
+                fallback = True
                 if isinstance(response, str):
                     return SamplerResponse(
                         response_text="",
                         response_metadata={"usage": None, "fallback": True, "error": response},
                         actual_queried_message_list=original_message_list,
                     )
-                generation_time = response._response_ms*1000
 
             message = response.choices[0].message
             tool_calls = message.get("tool_calls", None)
             all_usages.append(get_usage_dict(response.usage))
             agent_usages.append(get_usage_dict(response.usage))
-            generation_time += response._response_ms*1000
 
             if message.get('reasoning_content'):
                 reasoning_content = message.get('reasoning_content')
@@ -176,7 +178,6 @@ class DrReactSummSampler(SamplerBase):
 
             if tool_calls:
                 message_list.append(message)
-                start_time = time.time()
                 for tool_call in tool_calls:
                     function_args = json.loads(tool_call.function.arguments)
                     print(f"Function args: {function_args}")
@@ -185,20 +186,20 @@ class DrReactSummSampler(SamplerBase):
                     if tool_call.function.name == "search":
                         if "query" not in function_args:
                             tool_response = f"Error: Please provide a query to search for in the function arguments."
-                        elif self.track_queries and function_args["query"] in queries:
-                            tool_response = f"Error: You have already searched for this query. Please refine your search query."
                         else:
                             tool_response = self.web_search_tool.search(function_args["query"])
-                            queries.add(function_args["query"])
                         
                     elif tool_call.function.name == "visit":
                         if "url" not in function_args:
                             tool_response = f"Error: Please provide a url to visit in the function arguments."
                         else:
-                            tool_response = self.web_search_tool.open_url(function_args["url"], function_args.get("query", ""))
+                            tool_response = self.web_search_tool.open_url(
+                                function_args["url"], function_args.get("query", ""), 
+                                scoring_func=self.scoring_func, chunking_func=self.chunking_func
+                            )
                     
                     else:
-                        tool_response = f"Error: Unknown tool: {tool_call.function.name}"
+                        tool_response = f"Error: Unknown tool: {tool_call.function.name}. Only search and visit are allowed."
 
                     tool_message = {
                         "tool_call_id": tool_call.id,
@@ -210,42 +211,39 @@ class DrReactSummSampler(SamplerBase):
                     message_list.append(tool_message)
                     extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name} {cur_iter}", tool_call.function.arguments))
                     extra_convo.append(self._pack_message("tool", tool_message['content']))
-                tool_time += time.time() - start_time
 
             else:
                 print("No tools used")
                 break
 
             # summarization step
-            if (self.summary_mode == "turn" and (cur_iter+1) % self.summary_interval == 0) or (self.summary_mode == "token" and len(agent_usages) > 0 and agent_usages[-1]["input_tokens"] > self.summary_interval):
+            if (self.summary_mode == "turn" and (cur_iter+1) % self.summary_interval == 0) \
+                or (self.summary_mode == "token" and response.usage.get("total_tokens", 0) > self.summary_interval):
                 response  = self._summarize(message_list)
                 if isinstance(response, str):
                     print("Error in summarization. Falling back to not summarizing.")
                 else:
-                    summary_text = f"{response.choices[0].message.content}"
                     summ_usages.append(get_usage_dict(response.usage))
                     all_usages.append(summ_usages[-1])
-                    extra_convo.append(self._pack_message("user", summary_text))
-                    self.all_summaries.append(summary_text)
+
+                    self.all_summaries.append(response.choices[0].message.content)
+                    summary_text = "Summary of the work done so far:\n\n" +  "\n".join([
+                        f'Step {i+1}: {summary}' for i, summary in enumerate(self.all_summaries)
+                    ])
                     message_list = copy.deepcopy(original_message_list)
-                    message_list[0]['content'] = DRREACT_SUMMARIZED_SYSTEM_MESSAGE
-                    if len(self.all_summaries) > 0:
-                        summary_text = "Summary of the work done so far:\n\n" +  "\n".join([f'Step {i+1}: {summary}' for i, summary in enumerate(self.all_summaries)])
+                    message_list[0]['content'] = SLIM_SUMMARIZED_SYSTEM_MESSAGE
                     message_list.append(self._pack_message("user", summary_text))
-                    generation_time += response._response_ms*1000
+                    extra_convo.append(self._pack_message("user", summary_text))
 
             cur_iter += 1
 
         metadata = {
-            "fallback": False,
+            "fallback": fallback,
             "extra_convo": extra_convo,
             "usage": all_usages,
             "agent_usages": agent_usages,
             "summ_usages": summ_usages,
             "tool_counts": dict(tool_counts),
-            "tool_time": tool_time,
-            "generation_time": generation_time,
-            "latency": generation_time + tool_time,
         }
         message = response['choices'][0]['message']
         response_text = message['content'] if message['content'] is not None else ""

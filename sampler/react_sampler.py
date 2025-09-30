@@ -48,6 +48,7 @@ class ReactSampler(SamplerBase):
         max_tokens: int=1024,
         temperature: float=1.0,
         topk: int=10,
+        content_length: int=10000,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
@@ -56,7 +57,9 @@ class ReactSampler(SamplerBase):
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.extra_kwargs = extra_kwargs
-        self.web_search_tool = WebSearchTool(topk=topk)
+        self.topk = topk
+        self.content_length = content_length
+        self.web_search_tool = WebSearchTool()
 
 
     def _pack_message(self, role, content):
@@ -155,7 +158,9 @@ class ReactSampler(SamplerBase):
                         if "query" not in function_args:
                             tool_response = f"Error: Please provide a query to search for in the function arguments."
                         else:
-                            tool_response = self.web_search_tool.search_open_url(function_args["query"])
+                            tool_response = self.web_search_tool.search_open_url(
+                                function_args["query"], topk=self.topk, content_length=self.content_length
+                            )
 
                     tool_message = {
                         "tool_call_id": tool_call.id,

@@ -49,6 +49,7 @@ class SearchO1ToolChatSampler(SamplerBase):
         max_search_limit: int = 10,
         reasoning_model: bool = False,
         topk: int = 10,
+        content_length: int = 10000,
         extra_kwargs: Dict[str, Any] = {},
     ):
         self.model = model
@@ -61,7 +62,9 @@ class SearchO1ToolChatSampler(SamplerBase):
         self.topk = topk
         self.reasoning_model = reasoning_model
         self.extra_kwargs = extra_kwargs
-        self.search_tool = WebSearchTool(topk=topk)
+        self.search_tool = WebSearchTool()
+        self.topk = topk
+        self.content_length = content_length
 
         self.search_template = '\n\n{output_text}<|begin_search_result|>{search_results}<|end_search_result|>\n\n'
         self.search_stop_sequences = ["<|end_search_query|>", " <|end_search_query|>", "<|end_search_query|>\n", " <|end_search_query|>\n"]

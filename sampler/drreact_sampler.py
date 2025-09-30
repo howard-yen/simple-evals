@@ -30,6 +30,7 @@ class DrReactSampler(SamplerBase):
         max_tokens: int=1024,
         temperature: float=1.0,
         topk: int=10,
+        content_length: int=10000,
         track_queries: bool=False,
         extra_kwargs: Dict[str, Any]={},
     ):
@@ -40,7 +41,9 @@ class DrReactSampler(SamplerBase):
         self.temperature = temperature
         self.track_queries = track_queries
         self.extra_kwargs = extra_kwargs
-        self.web_search_tool = WebSearchTool(topk=topk)
+        self.web_search_tool = WebSearchTool()
+        self.topk = topk
+        self.content_length = content_length
 
 
     def _pack_message(self, role, content):

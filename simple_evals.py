@@ -31,8 +31,7 @@ from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYS
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
-from .sampler.drreact_sampler import DrReactSampler, DRREACT_SYSTEM_MESSAGE
-from .sampler.drreact_summ_sampler import DrReactSummSampler, DRREACT_SUMMARIZED_SYSTEM_MESSAGE
+from .sampler.slim_sampler import SlimSampler, SLIM_SYSTEM_MESSAGE, SLIM_SUMMARIZED_SYSTEM_MESSAGE
 from .sampler.search_r1_sampler import SearchR1Sampler
 from .sampler.search_r1_chat_sampler import SearchR1ChatSampler
 from .sampler.search_o1_sampler import SearchO1ChatSampler
@@ -317,75 +316,33 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o4-mini-10": DrReactSampler(
+        "slim-o4-mini-100-25": SlimSampler(
             model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o4-mini-25": DrReactSampler(
-            model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=25,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o4-mini-50": DrReactSampler(
-            model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=50,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o4-mini-100": DrReactSampler(
-            model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o4-mini-150": DrReactSampler(
-            model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=150,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o4-mini-200": DrReactSampler(
-            model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=200,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-summ-o4-mini-100-25": DrReactSummSampler(
-            model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=25,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o4-mini-100-50": DrReactSummSampler(
+        "slim-o4-mini-100-50": SlimSampler(
             model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o4-mini-150-25": DrReactSummSampler(
+        "slim-o4-mini-150-25": SlimSampler(
             model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=25,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o4-mini-150-50": DrReactSummSampler(
+        "slim-o4-mini-150-50": SlimSampler(
             model="azure/o4-mini",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=50,
@@ -478,111 +435,96 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-10": DrReactSampler(
+        "react-o3-10-k10-3k": ReactSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=REACT_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
+            topk=10,
+            content_length=3000,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-25": DrReactSampler(
+        "react-o3-10-k5-3k": ReactSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=25,
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=10,
             max_tokens=32768,
+            topk=5,
+            content_length=3000,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-o3-50": DrReactSampler(
+        "react-o3-10-k5-10k": ReactSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=50,
+            system_message=REACT_SYSTEM_MESSAGE,
+            max_iterations=10,
             max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o3-100": DrReactSampler(
-            model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o3-150": DrReactSampler(
-            model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=150,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-o3-200": DrReactSampler(
-            model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=200,
-            max_tokens=32768,
+            topk=5,
+            content_length=10000,
             extra_kwargs={"seed": args.model_seed}
         ),
 
         # this is only for an ablation
-        "drreact-summ-o3-50-50": DrReactSummSampler(
+        "slim-o3-50-50": SlimSampler(
             model="azure/o3",
-            use_summary_system_message=True,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-100-25": DrReactSummSampler(
+        "slim-o3-100-25": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=25,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-100-50": DrReactSummSampler(
+        "slim-o3-100-50": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-150-25": DrReactSummSampler(
+        "slim-o3-150-25": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=25,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-150-50": DrReactSummSampler(
+        "slim-o3-150-50": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-200-50": DrReactSummSampler(
+        "slim-o3-200-50": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=200,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
 
-        "drreact-summ-o3-token-100-32k": DrReactSummSampler(
+        "slim-o3-token-100-32k": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=32768,
             summary_mode='token',
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-summ-o3-token-100-64k": DrReactSummSampler(
+        "slim-o3-token-100-64k": SlimSampler(
             model="azure/o3",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=65536,
@@ -670,69 +612,34 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-claude-4-sonnet-10": DrReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "drreact-claude-4-sonnet-25": DrReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=25,
-            max_tokens=32768,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "drreact-claude-4-sonnet-50": DrReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=50,
-            max_tokens=32768,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "drreact-claude-4-sonnet-100": DrReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "drreact-claude-4-sonnet-200": DrReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=200,
-            max_tokens=32768,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
 
-        "drreact-summ-claude-4-sonnet-100-25": DrReactSummSampler(
+        "slim-claude-4-sonnet-100-25": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=25,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-summ-claude-4-sonnet-100-50": DrReactSummSampler(
+        "slim-claude-4-sonnet-100-50": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-summ-claude-4-sonnet-150-25": DrReactSummSampler(
+        "slim-claude-4-sonnet-150-25": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=25,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "drreact-summ-claude-4-sonnet-150-50": DrReactSummSampler(
+        "slim-claude-4-sonnet-150-50": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=50,
@@ -796,28 +703,14 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-kimi-k2-instruct-10": DrReactSampler(
-            model="together_ai/moonshotai/Kimi-K2-Instruct",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "drreact-kimi-k2-instruct-100": DrReactSampler(
-            model="together_ai/moonshotai/Kimi-K2-Instruct",
-            system_message=DRREACT_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
         "gpt-oss-120b": LiteLLMSampler(
             model="together_ai/openai/gpt-oss-120b",
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "drreact-gpt-oss-120b-10": DrReactSampler(
+        "slim-gpt-oss-120b-10": SlimSampler(
             model="together_ai/openai/gpt-oss-120b",
-            system_message=DRREACT_SYSTEM_MESSAGE,
+            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
