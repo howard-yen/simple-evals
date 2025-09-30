@@ -111,6 +111,7 @@ class ReactSampler(SamplerBase):
         all_usages = []
         generation_time = 0
         tool_time = 0
+        fallback = False
         if self.system_message:
             message_list = [
                 self._pack_message("developer", self.system_message)
@@ -126,6 +127,7 @@ class ReactSampler(SamplerBase):
 
             if isinstance(response, str):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")
+                fallback = True
                 response = self.generate(original_message_list)
                 tool_time = 0
                 if isinstance(response, str):
@@ -181,7 +183,7 @@ class ReactSampler(SamplerBase):
             cur_iter += 1
 
         metadata = {
-            "fallback": False,
+            "fallback": fallback,
             "extra_convo": extra_convo,
             "usage": all_usages,
             "tool_time": tool_time,
