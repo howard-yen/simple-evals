@@ -15,6 +15,8 @@ from rouge_score import rouge_scorer
 from diskcache import Cache
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import bm25s
+import Stemmer
 
 from crawl4ai.processors.pdf import PDFCrawlerStrategy, PDFContentScrapingStrategy
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
@@ -30,10 +32,14 @@ cache = Cache("./cache")
 class SearchRequest(BaseModel):
     query: str
     topk: int = 10
+    content_length: int = 10000
 
 class OpenUrlRequest(BaseModel):
     url: str
     query: str
+    content_length: int = 10000
+    scoring_func: str = "rouge"
+    chunking_func: str = "newline"
 
 
 def detect_content_type(url: str) -> str:
@@ -50,20 +56,34 @@ def detect_content_type(url: str) -> str:
         return "html"
 
 
-def find_snippet(texts: List[str], snippet: str, num_characters: int = 4000):
-    # we iterate through the texts, calculate the ROUGE score between the snippet and the text
-    # we mainly care about the recall score of ROUGE-L (most of the snippet is present in the long text)
-    # take the text with the highest recall score and the surrounding text of the snippet
+def find_snippet(texts: List[str], snippet: str, num_characters: int = 4000, scoring_func: str = "rouge"):
+    """
+    We iterate through the texts, break them into chunks of 1000 characters, and then use the scoring function to find the best chunk.
+    The text is already split into arbitrary chunks.
+    The scoring function can be "rouge" or "bm25".
+    We also take the surrounding text of the snippet to fill up the num_characters.
+    """
     positions = []
     start = 0
     best_recall = 0
     best_idx = 0
+
+    if scoring_func == 'bm25':
+        stemmer = Stemmer.Stemmer('english')
+        corpus_tokens = bm25s.tokenize(texts, stopwords='en', stemmer=stemmer)
+        retriever = bm25s.BM25()
+        retriever.index(corpus_tokens)
+        query_tokens = bm25s.tokenize(snippet, stopwords='en', stemmer=stemmer)
+        results, scores = retriever.retrieve(query_tokens, k=1)
+        best_idx = int(results[0, 0])
+
     for i, text in enumerate(texts):
-        score = scorer.score(target=snippet, prediction=text)
-        recall = score['rougeL'].recall
-        if recall > best_recall:
-            best_recall = recall
-            best_idx = i
+        if scoring_func == "rouge":
+            score = scorer.score(target=snippet, prediction=text)
+            recall = score['rougeL'].recall
+            if recall > best_recall:
+                best_recall = recall
+                best_idx = i
         positions.append((start, start + len(text)))
         start += len(text) + 1
     
@@ -75,9 +95,9 @@ def find_snippet(texts: List[str], snippet: str, num_characters: int = 4000):
             final_text.append(texts[i])
     
     return "\n".join(final_text)
-    
 
-async def scrape_pdf(url: str, snippet: str | None = None, num_characters: int = 10000) -> Tuple[bool, str, str]:
+
+async def scrape_pdf(url: str) -> Tuple[bool, str, str]:
     import fitz
     response = requests.get(url, headers=HEADERS, timeout=(3, 5))  # (connect timeout, read timeout)
     response.raise_for_status()
@@ -88,15 +108,10 @@ async def scrape_pdf(url: str, snippet: str | None = None, num_characters: int =
     
     texts = text.split("\n")
 
-    if snippet is not None:
-        final_snippet = find_snippet(texts, snippet, num_characters)
-    else:
-        final_snippet = text
-
-    return True, final_snippet, text
+    return True, text, text
 
 
-async def scrape_html(url: str, snippet: str | None = None, num_characters: int = 10000) -> Tuple[bool, str, str]:
+async def scrape_html(url: str) -> Tuple[bool, str, str]:
     prune_filter = PruningContentFilter(threshold=0.4, threshold_type="dynamic", min_word_threshold=3)
     md_generator = DefaultMarkdownGenerator(content_filter=prune_filter, options={"ignore_links": False})
     browser_config = BrowserConfig(
@@ -116,9 +131,6 @@ async def scrape_html(url: str, snippet: str | None = None, num_characters: int 
 
     fit_markdown = result.markdown.fit_markdown 
     raw_markdown = result.markdown.raw_markdown
-
-    if len(fit_markdown) > num_characters and snippet is not None:
-        fit_markdown = find_snippet(fit_markdown.split("\n"), snippet, num_characters)
 
     return True, fit_markdown, raw_markdown
 
@@ -179,76 +191,6 @@ def _cached_search(query: str, topk: int = 10) -> str:
 
 
 @lru_cache(maxsize=8192)
-def _cached_search_r1(query: str, topk: int = 10) -> str:
-    """Cached search function that takes hashable parameters."""
-    # https://github.com/PeterGriffinJin/Search-R1/blob/main/search_r1/search/serp_search_server.py
-
-    def _process_result(search_result: Dict):
-        results = []
-
-        # Process answer box if available
-        answer_box = search_result.get('answerBox', {})
-        if answer_box:
-            title = answer_box.get('title', 'No title.')
-            answer = answer_box.get('answer', 'No answer available.')
-            snippet = answer_box.get('snippet', '')
-            content = f'"{title}"\n{answer}'
-            if snippet:
-                content += f'\n{snippet}'
-            results.append({
-                'document': {"contents": content},
-            })
-
-        # Process knowledge graph if available
-        knowledge_graph = search_result.get('knowledgeGraph', {})
-        if knowledge_graph:
-            title = knowledge_graph.get('title', 'No title.')
-            description = knowledge_graph.get('description', 'No description available.')
-            results.append({
-                'document': {"contents": f'"{title}"\n{description}'},
-            })
-
-        # Process organic results
-        organic_results = search_result.get('organic', [])
-        for _, result in enumerate(organic_results[:topk]):
-            title = result.get('title', 'No title.')
-            snippet = result.get('snippet', 'No snippet available.')
-            results.append({
-                'document': {"contents": f'"{title}"\n{snippet}'},
-            })
-
-        # Process people also ask if available
-        people_also_ask = search_result.get('peopleAlsoAsk', [])
-        for _, result in enumerate(people_also_ask[:topk]):
-            question = result.get('question', 'No question.')
-            snippet = result.get('snippet', 'No snippet available.')
-            results.append({
-                'document': {"contents": f'"{question}"\n{snippet}'},
-            })
-
-        return results
-
-    try:
-        response = serper_search(query, topk=topk)
-    except Exception as e:
-        return f"Search error: {str(e)}"
-
-    results = _process_result(response)
-
-    def _passages2string(retrieval_result):
-        format_reference = ''
-        for idx, doc_item in enumerate(retrieval_result):
-            content = doc_item['document']['contents']
-            title = content.split("\n")[0]
-            text = "\n".join(content.split("\n")[1:])
-            format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
-        return format_reference
-    
-    output = _passages2string(results)
-    return output
-
-
-@lru_cache(maxsize=8192)
 def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
     # adapted from https://github.com/sunnynexus/Search-o1/blob/main/scripts/bing_search.py
     try:
@@ -275,14 +217,14 @@ def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
 
 @lru_cache(maxsize=8192)
 @cache.memoize(typed=True, expire=1e7, tag="content")
-def _cached_get_content(url: str) -> Tuple[bool, str, str]:
+def _cached_get_content(url: str, content_length: int = 10000) -> Tuple[bool, str, str]:
     """Cached function to get raw content from URL."""
     try:
         content_type = detect_content_type(url)
         if content_type == "pdf":
-            result = asyncio.run(scrape_pdf(url, None, 10000))
+            result = asyncio.run(scrape_pdf(url))
         else:
-            result = asyncio.run(scrape_html(url, None, 10000))
+            result = asyncio.run(scrape_html(url))
         return result
     except Exception as e:
         return False, str(e), ""
@@ -290,23 +232,34 @@ def _cached_get_content(url: str) -> Tuple[bool, str, str]:
 
 @lru_cache(maxsize=8192)
 @cache.memoize(typed=True, expire=1e7, tag="snippet")
-def _cached_find_snippet(content: str, query: str, num_characters: int = 10000) -> str:
+def _cached_find_snippet(content: str, query: str, num_characters: int = 10000, scoring_func: str = "rouge", chunking_func: str = "newline") -> str:
     """Cached function to find snippet in content."""
     if not query:
         return content[:num_characters]
     
-    content_lines = content.split("\n")
-    return find_snippet(content_lines, query, num_characters)
+    if chunking_func == "newline":
+        content_lines = content.split("\n")
+        content_lines = [line for line in content_lines if line.strip()]
+    elif "words" in chunking_func:
+        num_words = int(chunking_func.split("_")[1])
+        content_lines = content.split(" ")
+        content_lines = [line for line in content_lines if line.strip()]
+        content_lines = [content_lines[i:i+num_words] for i in range(0, len(content_lines), num_words)]
+        content_lines = [" ".join(line) for line in content_lines]
+    else: 
+        raise ValueError(f"Invalid chunking function: {chunking_func}")
+    
+    return find_snippet(content_lines, query, num_characters, scoring_func)
 
 
-def _cached_open_url(url: str, query: str) -> str:
+def _cached_open_url(url: str, query: str, content_length: int = 10000, scoring_func: str = "rouge", chunking_func: str = "newline") -> str:
     """Main function that combines cached content retrieval and snippet finding."""
     # First get the raw content (cached by URL only)
-    success, content_or_error, raw_content = _cached_get_content(url)
+    success, content_or_error, raw_content = _cached_get_content(url, content_length)
     if not success:
         return f"Failed to open the url {url}.\nAdditional information: {content_or_error}"
     
-    final_content = _cached_find_snippet(content_or_error, query, 10000)
+    final_content = _cached_find_snippet(content_or_error, query, content_length, scoring_func, chunking_func)
     
     return f"Successfully opened the url {url}.\n<Content>\n{final_content}\n</Content>"
 
@@ -323,21 +276,24 @@ def search(request: SearchRequest):
 @app.post("/open_url")
 def open_url(request: OpenUrlRequest): 
     print(f"Open url: {request.url} with query: {request.query}")
-    output = _cached_open_url(request.url, request.query)
+    output = _cached_open_url(request.url, request.query, request.content_length, request.scoring_func, request.chunking_func)
     return {'output': output}
 
 
 @app.post("/search_open_url")
 def search_open_url(request: SearchRequest):
     print(f"Search query: {request.query}")
-    search_results = serper_search(request.query, topk=request.topk)
+    try:
+        search_results = serper_search(request.query, topk=request.topk)
+    except Exception as e:
+        return {"output": f"Search error: {str(e)}"}
     search_results = [r for r in search_results['organic'] if "link" in r]
     urls = [r['link'] for r in search_results]
     output = ""
 
     with ThreadPoolExecutor(max_workers=32) as executor:
         futures = {
-            executor.submit(_cached_get_content, url): url 
+            executor.submit(_cached_get_content, url, request.content_length): url 
             for url in urls
         }
         for i, future in enumerate(tqdm(as_completed(futures), desc="Fetching URLs", total=len(urls))):
@@ -345,20 +301,13 @@ def search_open_url(request: SearchRequest):
             try:
                 data = future.result()
                 if not data[0]:
-                    output += f"<URL {url}>\n<Error: {data[1]}>\n"
+                    output += f"<URL {i}: {url}>\n<Error: {data[1]}>\n"
                 else:
                     title = search_results[i].get('title', '') if i < len(search_results) else ''
                     output += f"<URL {i}: {url}>\n<Title: {title}>\n<Content>\n{data[1]}\n</Content>\n"
             except Exception as e:
-                output += f"<URL {url}>\n<Error: {str(e)}>\n"
+                output += f"<URL {i}: {url}>\n<Error: {str(e)}>\n"
 
-    return {"output": output}
-
-
-@app.post("/search_r1")
-def search_r1_search(request: SearchRequest):
-    print(f"Search query: {request.query}")
-    output = _cached_search_r1(request.query, topk=request.topk)
     return {"output": output}
 
 
