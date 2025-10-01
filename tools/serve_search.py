@@ -1,4 +1,4 @@
-import os 
+import os
 import json
 import requests
 import argparse
@@ -7,7 +7,7 @@ import time
 import asyncio
 from typing import Dict, List, Tuple
 
-import uvicorn 
+import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from urllib.parse import urlparse
@@ -86,14 +86,14 @@ def find_snippet(texts: List[str], snippet: str, num_characters: int = 4000, sco
                 best_idx = i
         positions.append((start, start + len(text)))
         start += len(text) + 1
-    
+
     best_len = len(texts[best_idx])
     num_characters = num_characters - best_len
     final_text = []
     for i, pos in enumerate(positions):
         if (pos[0] >= positions[best_idx][0] - num_characters/2 and pos[1] <= positions[best_idx][1] + num_characters/2) or i == best_idx:
             final_text.append(texts[i])
-    
+
     return "\n".join(final_text)
 
 
@@ -105,7 +105,7 @@ async def scrape_pdf(url: str) -> Tuple[bool, str, str]:
         text = ""
         for page in doc:
             text += page.get_text()
-    
+
     texts = text.split("\n")
 
     return True, text, text
@@ -129,7 +129,7 @@ async def scrape_html(url: str) -> Tuple[bool, str, str]:
     if len(result.markdown.raw_markdown.strip()) == 0:
         return False, f"Failed to scrape the page, returned empty content.", ""
 
-    fit_markdown = result.markdown.fit_markdown 
+    fit_markdown = result.markdown.fit_markdown
     raw_markdown = result.markdown.raw_markdown
 
     return True, fit_markdown, raw_markdown
@@ -146,7 +146,7 @@ def serper_search(query: str, topk: int = 10) -> List[Dict]:
     payload = json.dumps({"q": query, "num": topk})
 
     for attempt in range(MAX_RETRIES):
-        try: 
+        try:
             response = requests.post(url=url, headers=headers, data=payload)
             response.raise_for_status()
         except requests.exceptions.Timeout as e:
@@ -158,7 +158,7 @@ def serper_search(query: str, topk: int = 10) -> List[Dict]:
                 raise e
         except Exception as e:
             raise e
-        
+
         if response.status_code in [408, 500, 502, 503, 504]:
             if attempt < MAX_RETRIES - 1:
                 delay = INITIAL_RETRY_DELAY * (attempt + 1)
@@ -197,7 +197,7 @@ def _cached_search_o1(query: str, topk: int = 10) -> List[Dict]:
         response = serper_search(query, topk=topk)
     except Exception as e:
         return f"Search error: {str(e)}"
-    
+
     useful_info = []
     for i, result in enumerate(response['organic']):
         info = {
@@ -236,7 +236,7 @@ def _cached_find_snippet(content: str, query: str, num_characters: int = 10000, 
     """Cached function to find snippet in content."""
     if not query:
         return content[:num_characters]
-    
+
     if chunking_func == "newline":
         content_lines = content.split("\n")
         content_lines = [line for line in content_lines if line.strip()]
@@ -246,9 +246,12 @@ def _cached_find_snippet(content: str, query: str, num_characters: int = 10000, 
         content_lines = [line for line in content_lines if line.strip()]
         content_lines = [content_lines[i:i+num_words] for i in range(0, len(content_lines), num_words)]
         content_lines = [" ".join(line) for line in content_lines]
-    else: 
+    else:
         raise ValueError(f"Invalid chunking function: {chunking_func}")
-    
+
+    if len(content_lines) == 0:
+        return None
+
     return find_snippet(content_lines, query, num_characters, scoring_func)
 
 
@@ -258,9 +261,11 @@ def _cached_open_url(url: str, query: str, content_length: int = 10000, scoring_
     success, content_or_error, raw_content = _cached_get_content(url, content_length)
     if not success:
         return f"Failed to open the url {url}.\nAdditional information: {content_or_error}"
-    
+
     final_content = _cached_find_snippet(content_or_error, query, content_length, scoring_func, chunking_func)
-    
+    if final_content is None:
+        return f"Failed to open {url}"
+
     return f"Successfully opened the url {url}.\n<Content>\n{final_content}\n</Content>"
 
 
@@ -274,7 +279,7 @@ def search(request: SearchRequest):
 
 
 @app.post("/open_url")
-def open_url(request: OpenUrlRequest): 
+def open_url(request: OpenUrlRequest):
     print(f"Open url: {request.url} with query: {request.query}")
     output = _cached_open_url(request.url, request.query, request.content_length, request.scoring_func, request.chunking_func)
     return {'output': output}
@@ -293,7 +298,7 @@ def search_open_url(request: SearchRequest):
 
     with ThreadPoolExecutor(max_workers=32) as executor:
         futures = {
-            executor.submit(_cached_get_content, url, request.content_length): url 
+            executor.submit(_cached_get_content, url, request.content_length): url
             for url in urls
         }
         for i, future in enumerate(tqdm(as_completed(futures), desc="Fetching URLs", total=len(urls))):
