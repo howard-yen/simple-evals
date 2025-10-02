@@ -59,6 +59,7 @@ class SlimSampler(SamplerBase):
         self.temperature = temperature
         self.summary_interval = summary_interval
         self.summary_mode = summary_mode
+        assert self.summary_mode in ["turn", "token", "none"], "Summary mode must be either turn or token or none"
         self.all_summaries = []
         self.extra_kwargs = extra_kwargs
         self.web_search_tool = WebSearchTool()

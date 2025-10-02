@@ -472,6 +472,14 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "slim-o3-99-50": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=99,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "slim-o3-100-25": SlimSampler(
             model="azure/o3",
             system_message=SLIM_SYSTEM_MESSAGE,
@@ -513,6 +521,7 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
+        # summary interval ablation
         "slim-o3-token-100-32k": SlimSampler(
             model="azure/o3",
             system_message=SLIM_SYSTEM_MESSAGE,
@@ -529,6 +538,50 @@ def main():
             max_tokens=32768,
             summary_interval=65536,
             summary_mode='token',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        # web search tool ablation, default is newline-rouge
+        "slim-o3-100-newline-bm25": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_mode='none',
+            scoring_func='bm25',
+            chunking_func='newline',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o3-100-words_100-rouge": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_mode='none',
+            scoring_func='rouge',
+            chunking_func='words_100',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o3-100-words_100-bm25": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_mode='none',
+            scoring_func='bm25',
+            chunking_func='words_100',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        # retrieval tool ablation
+        "slim-o3-100-50-k20-10k": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=50,
+            topk=20,
+            content_length=10000,
             extra_kwargs={"seed": args.model_seed}
         ),
 
