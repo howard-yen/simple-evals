@@ -131,7 +131,7 @@ class SlimSampler(SamplerBase):
                 
         messages = [
             {"role": "system", "content": SUMMARY_SYSTEM_MESSAGE},
-            {"role": "user", "content": "Here is the conversation you should summarize. Do not complete the task, just summarize the information in the conversation:\n\n{prompt}"},
+            {"role": "user", "content": f"Here is the conversation you should summarize. Do not complete the task, just summarize the information in the conversation:\n\n{prompt}"},
         ]
         response = self.generate(messages)
         return response
