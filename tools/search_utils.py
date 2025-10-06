@@ -71,13 +71,13 @@ class WebSearchTool():
         payload = json.dumps(payload)
         response = requests.post(self.url + "/open_url", data=payload)
         try: 
-            print(response.json())
+            out = response.json()
+            return out['output']
         except Exception as e:
-            print("--------------------------------")
+            print("Open url error: " + str(e))
             print(response)
-            print(e)
-            print("--------------------------------")
-        return response.json()['output']
+            print(response.text)
+            return "Open url error: " + str(e)
 
     def search_open_url(self, query: str, topk: int = 10, content_length: int = 10000) -> str:
         """Search the web for information, and also open all the urls. Following search-open-url's format."""
