@@ -409,7 +409,15 @@ def main():
             verbosity_level=-1, # -1 for no logs, default is 1
         ),
 
- 
+        # num turns ablation
+        "slim-o4-mini-100-25": SlimSampler(
+            model="azure/o4-mini",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         # summary interval ablation
         "slim-o4-mini-token-100-32k": SlimSampler(
             model="azure/o4-mini",
