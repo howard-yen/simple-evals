@@ -316,15 +316,32 @@ def main():
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "slim-o4-mini-100-25": SlimSampler(
+
+        "slim-o4-mini-10": SlimSampler(
             model="azure/o4-mini",
             system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=100,
+            max_iterations=10,
             max_tokens=32768,
-            summary_interval=25,
+            summary_mode="none",
             extra_kwargs={"seed": args.model_seed}
         ),
-        "slim-o4-mini-100-50": SlimSampler(
+        "slim-o4-mini-25": SlimSampler(
+            model="azure/o4-mini",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=25,
+            max_tokens=32768,
+            summary_mode="none",
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o4-mini-50": SlimSampler(
+            model="azure/o4-mini",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=32768,
+            summary_mode="none",
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o4-mini-100": SlimSampler(
             model="azure/o4-mini",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
@@ -332,15 +349,7 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "slim-o4-mini-150-25": SlimSampler(
-            model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=150,
-            max_tokens=32768,
-            summary_interval=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-150-50": SlimSampler(
+        "slim-o4-mini-150": SlimSampler(
             model="azure/o4-mini",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
@@ -568,32 +577,31 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
-        # this is only for an ablation
-        "slim-o3-50-50": SlimSampler(
+        "slim-o3-10": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=10,
+            max_tokens=32768,
+            summary_mode="none",
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o3-25": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=25,
+            max_tokens=32768,
+            summary_mode="none",
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o3-50": SlimSampler(
             model="azure/o3",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
-            summary_interval=50,
+            summary_mode="none",
             extra_kwargs={"seed": args.model_seed}
         ),
-        "slim-o3-99-50": SlimSampler(
-            model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=99,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-25": SlimSampler(
-            model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-50": SlimSampler(
+        "slim-o3-100": SlimSampler(
             model="azure/o3",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
@@ -601,26 +609,10 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
-        "slim-o3-150-25": SlimSampler(
+        "slim-o3-150": SlimSampler(
             model="azure/o3",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
-            max_tokens=32768,
-            summary_interval=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-150-50": SlimSampler(
-            model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=150,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-200-50": SlimSampler(
-            model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=200,
             max_tokens=32768,
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
@@ -811,15 +803,31 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
-        "slim-claude-4-sonnet-100-25": SlimSampler(
+        "slim-claude-4-sonnet-10": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=100,
+            max_iterations=10,
             max_tokens=32768,
-            summary_interval=25,
+            summary_mode='none',
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "slim-claude-4-sonnet-100-50": SlimSampler(
+        "slim-claude-4-sonnet-25": SlimSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=25,
+            max_tokens=32768,
+            summary_mode='none',
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "slim-claude-4-sonnet-50": SlimSampler(
+            model="vertex_ai/claude-sonnet-4@20250514",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=50,
+            max_tokens=32768,
+            summary_mode='none',
+            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
+        ),
+        "slim-claude-4-sonnet-100": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
@@ -827,15 +835,7 @@ def main():
             summary_interval=50,
             extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
         ),
-        "slim-claude-4-sonnet-150-25": SlimSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=150,
-            max_tokens=32768,
-            summary_interval=25,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "slim-claude-4-sonnet-150-50": SlimSampler(
+        "slim-claude-4-sonnet-150": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
             system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
@@ -936,37 +936,6 @@ def main():
     if args.model:
         models_chosen = args.model.split(",")
         for model_name in models_chosen:
-            if model_name.startswith("hosted_vllm-"):
-                models[model_name] = LiteLLMSampler(
-                    model=model_name.replace("hosted_vllm-", "hosted_vllm/"),
-                    max_tokens=32768,
-                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
-                )
-            elif model_name.startswith("drreact_vllm-"):
-                max_iter = model_name.split("-")[-1]
-                models[model_name] = DrReactSampler(
-                    model=model_name.replace("drreact_vllm-", "hosted_vllm/")[:-len(max_iter)-1],
-                    system_message=DRREACT_SYSTEM_MESSAGE,
-                    max_iterations=int(max_iter),
-                    max_tokens=32768,
-                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
-                )
-            elif model_name.startswith("hosted-search-o1-"):
-                models[model_name] = SearchO1ChatSampler(
-                    model=model_name.replace("hosted-search-o1-", "hosted_vllm/"),
-                    max_tokens=32768,
-                    reasoning_model=True,
-                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
-                )
-            elif model_name.startswith("hosted-search-r1-"):
-                models[model_name] = SearchR1Sampler(
-                    model=model_name.replace("search-r1-", "hosted_vllm/"),
-                    tokenizer=args.hf_tokenizer,
-                    max_tokens=32768,
-                    reasoning_model=True,
-                    extra_kwargs={"seed": args.model_seed, "api_key": "", "api_base": "http://localhost:8000/v1"}
-                )
-
             if model_name not in models:
                 print(f"Error: Model '{model_name}' not found.")
                 return
