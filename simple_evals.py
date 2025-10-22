@@ -617,6 +617,14 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "slim-o3-100-25": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=25,
+            extra_kwargs={"seed": args.model_seed}
+        ),
         "slim-o3-150": SlimSampler(
             model="azure/o3",
             system_message=SLIM_SYSTEM_MESSAGE,
