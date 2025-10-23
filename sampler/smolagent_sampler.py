@@ -8,25 +8,30 @@ from typing import Any, Dict, Optional
 
 from huggingface_hub import login
 
-from .smolagents_scripts.text_inspector_tool import TextInspectorTool
-from .smolagents_scripts.text_web_browser import (
-    ArchiveSearchTool,
-    FinderTool,
-    FindNextTool,
-    PageDownTool,
-    PageUpTool,
-    SimpleTextBrowser,
-    VisitTool,
-)
-from .smolagents_scripts.visual_qa import visualizer
+try:
+    from .smolagents_scripts.text_inspector_tool import TextInspectorTool
+    from .smolagents_scripts.text_web_browser import (
+        ArchiveSearchTool,
+        FinderTool,
+        FindNextTool,
+        PageDownTool,
+        PageUpTool,
+        SimpleTextBrowser,
+        VisitTool,
+    )
+    from .smolagents_scripts.visual_qa import visualizer
 
-from smolagents import (
-    CodeAgent,
-    GoogleSearchTool,
-    LiteLLMModel,
-    ToolCallingAgent,
-)
-from smolagents.memory import MemoryStep
+    from smolagents import (
+        CodeAgent,
+        GoogleSearchTool,
+        LiteLLMModel,
+        ToolCallingAgent,
+    )
+    from smolagents.memory import MemoryStep
+    IMPORTED = True
+except ImportError:
+    IMPORTED = False
+    
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 from ..common import get_usage_dict
@@ -305,6 +310,9 @@ class SmolAgentSampler(SamplerBase):
             gc.collect()
 
     def __call__(self, message_list: MessageList) -> SamplerResponse:
+        if not IMPORTED:
+            raise ImportError("smolagents not found, follow instructions in the README to install it.")
+
         """Execute the agent with proper error handling and retry logic"""
         # The current agent does not support parallel calls as the memory and steps are shared.
         # For each call, we need to create a new agent.

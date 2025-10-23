@@ -31,11 +31,13 @@ from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYS
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
-from .sampler.slim_sampler import SlimSampler, SLIM_SYSTEM_MESSAGE, SLIM_SUMMARIZED_SYSTEM_MESSAGE
+from .sampler.slim_sampler import SlimSampler
 from .sampler.search_r1_sampler import SearchR1Sampler
 from .sampler.search_r1_chat_sampler import SearchR1ChatSampler
 from .sampler.search_o1_sampler import SearchO1ChatSampler
 from .sampler.search_o1_tool_sampler import SearchO1ToolChatSampler
+
+
 
 def get_config_path(relative_path):
     """Get absolute path to a config file relative to this script's location."""
@@ -319,7 +321,6 @@ def main():
 
         "slim-o4-mini-10": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             summary_mode="none",
@@ -327,7 +328,6 @@ def main():
         ),
         "slim-o4-mini-25": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=25,
             max_tokens=32768,
             summary_mode="none",
@@ -335,7 +335,6 @@ def main():
         ),
         "slim-o4-mini-50": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
             summary_mode="none",
@@ -343,7 +342,6 @@ def main():
         ),
         "slim-o4-mini-100": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -351,7 +349,6 @@ def main():
         ),
         "slim-o4-mini-150": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=50,
@@ -421,7 +418,6 @@ def main():
         # summary interval ablation
         "slim-o4-mini-token-100-32k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=32768,
@@ -430,7 +426,6 @@ def main():
         ),
         "slim-o4-mini-token-100-64k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=65536,
@@ -441,7 +436,6 @@ def main():
         # web search tool ablation, default is newline-rouge
         "slim-o4-mini-100-newline-bm25": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -451,7 +445,6 @@ def main():
         ),
         "slim-o4-mini-100-words_100-rouge": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -461,7 +454,6 @@ def main():
         ),
         "slim-o4-mini-100-words_100-bm25": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -473,7 +465,6 @@ def main():
         # retrieval tool ablation
         "slim-o4-mini-100-k10-3k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -483,7 +474,6 @@ def main():
         ),
         "slim-o4-mini-100-k10-20k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -493,7 +483,6 @@ def main():
         ),
         "slim-o4-mini-100-k20-3k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -503,7 +492,6 @@ def main():
         ),
         "slim-o4-mini-100-k20-10k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -513,7 +501,6 @@ def main():
         ),
         "slim-o4-mini-100-k20-20k": SlimSampler(
             model="azure/o4-mini",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -587,7 +574,6 @@ def main():
 
         "slim-o3-10": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             summary_mode="none",
@@ -595,7 +581,6 @@ def main():
         ),
         "slim-o3-25": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=25,
             max_tokens=32768,
             summary_mode="none",
@@ -603,7 +588,6 @@ def main():
         ),
         "slim-o3-50": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
             summary_mode="none",
@@ -611,7 +595,6 @@ def main():
         ),
         "slim-o3-100": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -619,7 +602,6 @@ def main():
         ),
         "slim-o3-100-25": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=25,
@@ -627,7 +609,6 @@ def main():
         ),
         "slim-o3-150": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=50,
@@ -637,7 +618,6 @@ def main():
         # summary interval ablation
         "slim-o3-token-100-32k": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=32768,
@@ -646,7 +626,6 @@ def main():
         ),
         "slim-o3-token-100-64k": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=65536,
@@ -657,7 +636,6 @@ def main():
         # web search tool ablation, default is newline-rouge
         "slim-o3-100-newline-bm25": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -667,7 +645,6 @@ def main():
         ),
         "slim-o3-100-words_100-rouge": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -677,7 +654,6 @@ def main():
         ),
         "slim-o3-100-words_100-bm25": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -689,7 +665,6 @@ def main():
         # retrieval tool ablation
         "slim-o3-100-k10-3k": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -699,7 +674,6 @@ def main():
         ),
         "slim-o3-100-k10-20k": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -709,17 +683,6 @@ def main():
         ),
         "slim-o3-100-k20-3k": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=20,
-            content_length=3000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-k20-10k": SlimSampler(
-            model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -729,7 +692,6 @@ def main():
         ),
         "slim-o3-100-k20-20k": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -821,7 +783,6 @@ def main():
 
         "slim-claude-4-sonnet-10": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             summary_mode='none',
@@ -829,7 +790,6 @@ def main():
         ),
         "slim-claude-4-sonnet-25": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=25,
             max_tokens=32768,
             summary_mode='none',
@@ -837,7 +797,6 @@ def main():
         ),
         "slim-claude-4-sonnet-50": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=50,
             max_tokens=32768,
             summary_mode='none',
@@ -845,7 +804,6 @@ def main():
         ),
         "slim-claude-4-sonnet-100": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=100,
             max_tokens=32768,
             summary_interval=50,
@@ -853,7 +811,6 @@ def main():
         ),
         "slim-claude-4-sonnet-150": SlimSampler(
             model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=150,
             max_tokens=32768,
             summary_interval=50,
@@ -924,7 +881,6 @@ def main():
         ),
         "slim-gpt-oss-120b-10": SlimSampler(
             model="together_ai/openai/gpt-oss-120b",
-            system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=10,
             max_tokens=32768,
             extra_kwargs={"seed": args.model_seed}

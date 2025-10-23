@@ -64,6 +64,7 @@ def decrypt(ciphertext_b64: str, password: str) -> str:
 
 # Note: option to use the local path
 LOCAL_PATH = "simple-evals/data/browse_comp_test_set.csv"
+LOCAL_PATH = None
 
 class BrowseCompEval(Eval):
     def __init__(self, grader_model: SamplerBase, num_examples: int | None = None, n_repeats: int = 1, n_threads: int = 1):
