@@ -31,7 +31,8 @@ from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYS
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
-from .sampler.slim_sampler import SlimSampler
+from .sampler.slim_sampler import SlimSampler, SLIM_SYSTEM_MESSAGE, SLIM_SUMMARIZED_SYSTEM_MESSAGE
+from .sampler.tongyi_dr_sampler import SLIM_TONGYI_SYSTEM_PROMPT, SLIM_SUMMARIZED_TONGYI_SYSTEM_PROMPT, TONGYI_SEARCH_TOOL, TONGYI_VISIT_TOOL
 from .sampler.search_r1_sampler import SearchR1Sampler
 from .sampler.search_r1_chat_sampler import SearchR1ChatSampler
 from .sampler.search_o1_sampler import SearchO1ChatSampler
@@ -613,6 +614,14 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
+        "slim-o3-200": SlimSampler(
+            model="azure/o3",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            max_iterations=200,
+            max_tokens=32768,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
 
         # summary interval ablation
         "slim-o3-token-100-32k": SlimSampler(
@@ -882,6 +891,69 @@ def main():
             model="together_ai/openai/gpt-oss-120b",
             max_iterations=10,
             max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "gpt-oss-120b": LiteLLMSampler(
+            model="hosted_vllm/gpt-oss-120b",
+            base_url="http://localhost:8000/v1",
+            max_tokens=32768,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "slim-gpt-oss-120b-50": SlimSampler(
+            model="hosted_vllm/gpt-oss-120b",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            # use_responses_api=True,
+            base_url="http://localhost:8000/v1",
+            max_iterations=50,
+            max_tokens=32768,
+            keep_reasoning=True,
+            summary_mode='none',
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "slim-gpt-oss-120b-150": SlimSampler(
+            model="hosted_vllm/gpt-oss-120b",
+            system_message=SLIM_SYSTEM_MESSAGE,
+            # use_responses_api=True,
+            base_url="http://localhost:8000/v1",
+            max_iterations=150,
+            max_tokens=32768,
+            keep_reasoning=True,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "search-o1-tool-gpt-oss-120b-10": SearchO1ToolChatSampler(
+            model="hosted_vllm/gpt-oss-120b",
+            base_url="http://localhost:8000/v1",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=10,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "search-o1-tool-gpt-oss-120b-50": SearchO1ToolChatSampler(
+            model="hosted_vllm/gpt-oss-120b",
+            base_url="http://localhost:8000/v1",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "slim-tongyi-deepresearch-30b-a3b-150": SlimSampler(
+            model="hosted_vllm/Tongyi-DeepResearch-30B-A3B",
+            system_message=SLIM_TONGYI_SYSTEM_PROMPT,
+            summary_system_message=SLIM_SUMMARIZED_TONGYI_SYSTEM_PROMPT,
+            search_tool=TONGYI_SEARCH_TOOL,
+            visit_tool=TONGYI_VISIT_TOOL,
+            base_url="http://localhost:8001/v1",
+            max_iterations=150,
+            max_tokens=32768,
+            keep_reasoning=True,
+            summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
     }

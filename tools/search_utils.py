@@ -24,6 +24,14 @@ SEARCH_TOOL = {
     }
 }
 
+SEARCH_RESPONSE_TOOL = {
+    "type": SEARCH_TOOL['type'],
+    "name": SEARCH_TOOL['function']['name'],
+    "description": SEARCH_TOOL['function']['description'],
+    "parameters": SEARCH_TOOL['function']['parameters'],
+    "strict": SEARCH_TOOL['function']['strict'],
+}
+
 VISIT_TOOL = {
     "type": "function",
     "function": {
@@ -47,6 +55,13 @@ VISIT_TOOL = {
             "additionalProperties": False
         },
     }
+}
+
+VISIT_RESPONSE_TOOL = {
+    "type": VISIT_TOOL['type'],
+    "name": VISIT_TOOL['function']['name'],
+    "description": VISIT_TOOL['function']['description'],
+    "parameters": VISIT_TOOL['function']['parameters'],
 }
 
 class WebSearchTool():

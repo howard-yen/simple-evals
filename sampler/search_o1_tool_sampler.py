@@ -50,6 +50,7 @@ class SearchO1ToolChatSampler(SamplerBase):
         reasoning_model: bool = False,
         topk: int = 10,
         content_length: int = 10000,
+        base_url: str | None = None,
         extra_kwargs: Dict[str, Any] = {},
     ):
         self.model = model
@@ -65,7 +66,7 @@ class SearchO1ToolChatSampler(SamplerBase):
         self.search_tool = WebSearchTool()
         self.topk = topk
         self.content_length = content_length
-
+        self.base_url = base_url
         self.search_template = '\n\n{output_text}<|begin_search_result|>{search_results}<|end_search_result|>\n\n'
         self.search_stop_sequences = ["<|end_search_query|>", " <|end_search_query|>", "<|end_search_query|>\n", " <|end_search_query|>\n"]
 
@@ -187,7 +188,8 @@ Now you should analyze each web page and find helpful information based on the c
                         model=self.model,
                         messages=message_list,
                         max_tokens=self.max_tokens,
-                        timeout=600,
+                        base_url=self.base_url,
+                        timeout=3600,
                         tools=tools,
                         **self.extra_kwargs
                     )
@@ -197,7 +199,8 @@ Now you should analyze each web page and find helpful information based on the c
                         messages=message_list,
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
-                        timeout=600,
+                        base_url=self.base_url,
+                        timeout=3600,
                         tools=tools,
                         **self.extra_kwargs
                     )
@@ -274,19 +277,30 @@ Now you should analyze each web page and find helpful information based on the c
             all_usage.append(usage)
             all_generation_usage.append(usage)
             generation_time += response_time
-            message_list.append(message)
 
             # Check if this contains a search query
             if message.get('reasoning_content'):
                 extra_convo.append(self._pack_message("assistant thinking", message['reasoning_content']))
                 all_output_text += message['reasoning_content']
+                message_list.append(self._pack_message("assistant", message['reasoning_content']))
+
+            message_list.append(message)
 
             if output_text is not None:
                 all_output_text += output_text
             tool_calls = message.get('tool_calls', None)
             if tool_calls:
                 for tool_call in tool_calls:
-                    function_args = json.loads(tool_call.function.arguments)
+                    try:
+                        function_args = json.loads(tool_call.function.arguments)
+                    except json.decoder.JSONDecodeError:
+                        function_args = tool_call.function.arguments
+                        tool_response = f"Error: Invalid JSON in tool call:\n{function_args}"
+                        extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name}", function_args))
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': tool_response})
+                        extra_convo.append(self._pack_message("tool", tool_response))
+                        continue
+                        
                     extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name}", function_args))
 
                     if tool_call.function.name != "search":

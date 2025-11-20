@@ -27,6 +27,7 @@ class LiteLLMSampler(SamplerBase):
         max_tokens: int = 1024,
         reasoning_model: bool = False,
         tools: List[Dict[str, str]] | None = None,
+        base_url: str | None = None,
         extra_kwargs: Dict[str, Any] = {},
     ):
         self.model = model
@@ -36,6 +37,7 @@ class LiteLLMSampler(SamplerBase):
         self.image_format = "url"
         self.tools = tools
         self.reasoning_model = reasoning_model
+        self.base_url = base_url
         # extra kwargs for litellm.completion
         self.extra_kwargs = extra_kwargs
 
@@ -73,6 +75,7 @@ class LiteLLMSampler(SamplerBase):
                         messages=message_list,
                         max_tokens=self.max_tokens,
                         tools=self.tools,
+                        base_url=self.base_url,
                         timeout=3600,
                         **self.extra_kwargs,
                     )
@@ -83,6 +86,7 @@ class LiteLLMSampler(SamplerBase):
                         temperature=self.temperature,
                         max_tokens=self.max_tokens,
                         tools=self.tools,
+                        base_url=self.base_url,
                         timeout=3600,
                         **self.extra_kwargs,
                     )

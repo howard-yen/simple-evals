@@ -32,10 +32,12 @@ class ResponsesSampler(SamplerBase):
         reasoning_model: bool = False,
         reasoning_effort: str | None = None,
         tools: List[Dict[str, str]] | None = None,
+        base_url: str | None = None,
     ):
         self.api_key_name = "OPENAI_API_KEY"
         assert os.environ.get("OPENAI_API_KEY"), "Please set OPENAI_API_KEY"
-        self.client = OpenAI()
+        self.base_url = base_url
+        self.client = OpenAI(base_url=base_url)
         self.model = model
         self.system_message = system_message
         self.temperature = temperature
