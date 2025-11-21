@@ -22,9 +22,20 @@ When using the search tool, you should think carefully about the question. Decom
 The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
 After you have collected all the information you need, you should complete the given task."""
 
+SLIM_SYSTEM_MESSAGE_NO_VISIT = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
+The search tool will return a list of urls and their descriptions.
+After you have collected all the information you need, you should complete the given task."""
+
 SLIM_SUMMARIZED_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
 When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
 The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
+After you have collected all the information you need, you should complete the given task.
+You are given a summary of work done so far, which contains relevant information to the task. You should use this summary to continue the completion of the task."""
+
+SLIM_SUMMARIZED_SYSTEM_MESSAGE_NO_VISIT = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
+The search tool will return a list of urls and their descriptions.
 After you have collected all the information you need, you should complete the given task.
 You are given a summary of work done so far, which contains relevant information to the task. You should use this summary to continue the completion of the task."""
 
@@ -60,11 +71,15 @@ class SlimSampler(SamplerBase):
         self.model = model
         if use_summary_system_message:
             self.system_message = SLIM_SUMMARIZED_SYSTEM_MESSAGE
+        elif no_visit_tool:
+            self.system_message = SLIM_SYSTEM_MESSAGE_NO_VISIT
         else:
             self.system_message = system_message if system_message is not None else SLIM_SYSTEM_MESSAGE
 
         if summary_system_message is not None:
             self.summary_system_message = SLIM_SUMMARIZED_SYSTEM_MESSAGE
+        elif no_visit_tool:
+            self.summary_system_message = SLIM_SUMMARIZED_SYSTEM_MESSAGE_NO_VISIT
         else:
             self.summary_system_message = summary_system_message
 
@@ -79,7 +94,7 @@ class SlimSampler(SamplerBase):
                 self.visit_tool = VISIT_TOOL if not use_responses_api else VISIT_RESPONSE_TOOL
         else:
             self.visit_tool = visit_tool
-        self.tools = [self.search_tool, self.visit_tool] if not self.no_visit_tool else [self.search_tool]
+        self.tools = [self.search_tool, self.visit_tool] if not no_visit_tool else [self.search_tool]
 
         assert self.system_message, "System message is required for SlimSampler"
         self.max_iterations = max_iterations
