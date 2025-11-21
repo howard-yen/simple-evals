@@ -13,8 +13,23 @@ from ..types import MessageList, SamplerBase, SamplerResponse
 from ..common import get_usage_dict
 from ..tools.search_utils import WebSearchTool, SEARCH_TOOL, VISIT_TOOL, SEARCH_RESPONSE_TOOL, VISIT_RESPONSE_TOOL
 
-from slim import Slim
+# from slim import Slim
 import litellm
+
+
+SLIM_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
+The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
+After you have collected all the information you need, you should complete the given task."""
+
+SLIM_SUMMARIZED_SYSTEM_MESSAGE = """You are a helpful assistant that can search the web. You are encourage to use the search tool to best answer the user's question. Use the search tool to collect useful information.
+When using the search tool, you should think carefully about the question. Decompose and rewrite the search query if necessary. After using the search tool, you should reason about the results and summarize the relevant information to answer the user's question. If the search results are not relevant, you are encouraged to refine your search query and search again. Continue to use the tools until you have collected all the information you need, this may take many iterations.
+The search tool will return a list of urls and their descriptions, and you should visit the urls that are relevant to the task. Visiting a url will provide you with more information.
+After you have collected all the information you need, you should complete the given task.
+You are given a summary of work done so far, which contains relevant information to the task. You should use this summary to continue the completion of the task."""
+
+
+SUMMARY_SYSTEM_MESSAGE = """You are a helpful assistant that can summarize the information in the messages. You should summarize key information in the messages. Key information may include search queries issues, urls visited, and relevant results, but you may include other useful information as well. The summary will be given back to the original assistant in place of the messages to continue the completion of the task, so make sure to include all key and relevant information."""
 
 
 class SlimSampler(SamplerBase):
@@ -44,9 +59,9 @@ class SlimSampler(SamplerBase):
         if use_summary_system_message:
             self.system_message = SLIM_SUMMARIZED_SYSTEM_MESSAGE
         else:
-            self.system_message = system_message
+            self.system_message = system_message if system_message is not None else SLIM_SYSTEM_MESSAGE
 
-        if use_summary_system_message:
+        if summary_system_message is not None:
             self.summary_system_message = SLIM_SUMMARIZED_SYSTEM_MESSAGE
         else:
             self.summary_system_message = summary_system_message

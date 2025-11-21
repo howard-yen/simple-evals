@@ -956,6 +956,35 @@ def main():
             summary_interval=50,
             extra_kwargs={"seed": args.model_seed}
         ),
+
+        "slim-tongyi-deepresearch-30b-a3b-10": SlimSampler(
+            model="openrouter/alibaba/tongyi-deepresearch-30b-a3b",
+            system_message=SLIM_TONGYI_SYSTEM_PROMPT,
+            summary_system_message=SLIM_SUMMARIZED_TONGYI_SYSTEM_PROMPT,
+            search_tool=TONGYI_SEARCH_TOOL,
+            visit_tool=TONGYI_VISIT_TOOL,
+            # base_url="http://localhost:8001/v1",
+            max_iterations=10,
+            max_tokens=32768,
+            keep_reasoning=True,
+            summary_interval=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
+        "search-o1-tool-tongyi-deepresearch-30b-a3b-10": SearchO1ToolChatSampler(
+            model="openrouter/alibaba/tongyi-deepresearch-30b-a3b",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=10,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "search-o1-tool-tongyi-deepresearch-30b-a3b-50": SearchO1ToolChatSampler(
+            model="openrouter/alibaba/tongyi-deepresearch-30b-a3b",
+            max_tokens=32768,
+            reasoning_model=True,
+            max_search_limit=50,
+            extra_kwargs={"seed": args.model_seed}
+        ),
     }
 
     if args.list_models:
