@@ -57,11 +57,40 @@ VISIT_TOOL = {
     }
 }
 
+VISIT_TOOL_NO_QUERY = {
+    "type": "function",
+    "function": {
+        "name": "visit",
+        "description": "Visit a url and return the page content.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The url to open."
+                }
+            },
+            "required": [
+                "url",
+            ],
+            "additionalProperties": False
+        },
+        "strict": True
+    }
+}
+
 VISIT_RESPONSE_TOOL = {
     "type": VISIT_TOOL['type'],
     "name": VISIT_TOOL['function']['name'],
     "description": VISIT_TOOL['function']['description'],
     "parameters": VISIT_TOOL['function']['parameters'],
+}
+
+VISIT_RESPONSE_TOOL_NO_QUERY = {
+    "type": VISIT_TOOL_NO_QUERY['type'],
+    "name": VISIT_TOOL_NO_QUERY['function']['name'],
+    "description": VISIT_TOOL_NO_QUERY['function']['description'],
+    "parameters": VISIT_TOOL_NO_QUERY['function']['parameters'],
 }
 
 class WebSearchTool():

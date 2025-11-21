@@ -320,6 +320,12 @@ Now you should analyze each web page and find helpful information based on the c
                         start_time = time.time()
                         # Perform search
                         search_results = self.search_tool.search_o1(search_query, topk=self.topk)
+                        if isinstance(search_results, str):
+                            print(f"Error in search: {search_results}")
+                            tool_response = f"Error: {search_results}"
+                            message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': tool_response})
+                            extra_convo.append(self._pack_message("tool", tool_response))
+                            continue
                         formatted_documents = search_results['output']
                         all_search_results.append(search_results['search_results'])
                         tool_time += time.time() - start_time

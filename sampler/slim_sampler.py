@@ -11,7 +11,7 @@ import openai
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 from ..common import get_usage_dict
-from ..tools.search_utils import WebSearchTool, SEARCH_TOOL, VISIT_TOOL, SEARCH_RESPONSE_TOOL, VISIT_RESPONSE_TOOL
+from ..tools.search_utils import WebSearchTool, SEARCH_TOOL, VISIT_TOOL, SEARCH_RESPONSE_TOOL, VISIT_RESPONSE_TOOL, VISIT_TOOL_NO_QUERY, VISIT_RESPONSE_TOOL_NO_QUERY
 
 # from slim import Slim
 import litellm
@@ -53,6 +53,8 @@ class SlimSampler(SamplerBase):
         base_url: str | None = None,
         search_tool: dict | None = None,
         visit_tool: dict | None = None,
+        no_visit_tool: bool=False,
+        no_query_in_visit: bool=False,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
@@ -71,9 +73,13 @@ class SlimSampler(SamplerBase):
         else:
             self.search_tool = search_tool
         if visit_tool is None:
-            self.visit_tool = VISIT_TOOL if not use_responses_api else VISIT_RESPONSE_TOOL
+            if no_query_in_visit:
+                self.visit_tool = VISIT_TOOL_NO_QUERY if not use_responses_api else VISIT_RESPONSE_TOOL_NO_QUERY
+            else:
+                self.visit_tool = VISIT_TOOL if not use_responses_api else VISIT_RESPONSE_TOOL
         else:
             self.visit_tool = visit_tool
+        self.tools = [self.search_tool, self.visit_tool] if not self.no_visit_tool else [self.search_tool]
 
         assert self.system_message, "System message is required for SlimSampler"
         self.max_iterations = max_iterations
@@ -198,7 +204,7 @@ class SlimSampler(SamplerBase):
             if cur_iter == self.max_iterations:
                 response = self.generate(message_list)
             else:
-                response = self.generate(message_list, tools=[self.search_tool, self.visit_tool])
+                response = self.generate(message_list, tools=self.tools)
             
             if isinstance(response, str):
                 print(f"Error in iteration {cur_iter}. Falling back to not using tools.")

@@ -433,6 +433,23 @@ def main():
             extra_kwargs={"seed": args.model_seed}
         ),
 
+        "slim-o4-mini-100-no-visit": SlimSampler(
+            model="azure/o4-mini",
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=50,
+            no_visit_tool=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+        "slim-o4-mini-100-no-query-in-visit": SlimSampler(
+            model="azure/o4-mini",
+            max_iterations=100,
+            max_tokens=32768,
+            summary_interval=50,
+            no_query_in_visit=True,
+            extra_kwargs={"seed": args.model_seed}
+        ),
+
         # web search tool ablation, default is newline-rouge
         "slim-o4-mini-100-newline-bm25": SlimSampler(
             model="azure/o4-mini",
