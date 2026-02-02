@@ -5,6 +5,8 @@ import openai
 from openai import OpenAI
 
 from ..types import MessageList, SamplerBase, SamplerResponse
+from pydantic import BaseModel
+
 
 OPENAI_SYSTEM_MESSAGE_API = "You are a helpful assistant."
 OPENAI_SYSTEM_MESSAGE_CHATGPT = (
@@ -98,3 +100,39 @@ class ChatCompletionSampler(SamplerBase):
                 time.sleep(exception_backoff)
                 trial += 1
             # unknown error shall throw exception
+
+    def parse(self, message_list: MessageList, schema: BaseModel) -> str:
+        if self.system_message:
+            message_list = [
+                self._pack_message("system", self.system_message)
+            ] + message_list
+        trial = 0
+        while True:
+            try:
+                response = self.client.chat.completions.parse(
+                    model=self.model,
+                    messages=message_list,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    response_format=schema,
+                )
+                content = response.choices[0].message.parsed
+                if content is None:
+                    raise ValueError("OpenAI API returned empty response; retrying")
+                return content
+            # NOTE: BadRequestError is triggered once for MMMU, please uncomment if you are reruning MMMU
+            except openai.BadRequestError as e:
+                print("Bad Request Error", e)
+                return None
+            except Exception as e:
+                self.client = OpenAI(base_url=self.base_url)
+                exception_backoff = 2**trial  # expontial back off
+                exception_backoff = min(exception_backoff, 128)
+                print(
+                    f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec",
+                    e,
+                )
+                time.sleep(exception_backoff)
+                trial += 1
+            # unknown error shall throw exception
+

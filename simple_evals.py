@@ -18,6 +18,7 @@ from .math_eval import MathEval
 from .mgsm_eval import MGSMEval
 from .mmlu_eval import MMLUEval
 from .simpleqa_eval import SimpleQAEval
+from .deepsearchqa_eval import DeepSearchQAEval
 # from .humaneval_eval import HumanEval
 from .sampler.chat_completion_sampler import (
     OPENAI_SYSTEM_MESSAGE_API,
@@ -31,7 +32,8 @@ from .sampler.smolagent_sampler import SmolAgentSampler, SMOLAGENT_CODEAGENT_SYS
 from .sampler.gpt_researcher_sampler import GPTResearcherSampler, GPT_RESEARCHER_SYSTEM_MESSAGE
 from .sampler.litellm_sampler import LiteLLMSampler
 from .sampler.react_sampler import ReactSampler, REACT_SYSTEM_MESSAGE
-from .sampler.slim_sampler import SlimSampler, SLIM_SYSTEM_MESSAGE, SLIM_SUMMARIZED_SYSTEM_MESSAGE
+# from .sampler.slim_sampler import SlimSampler, SLIM_SYSTEM_MESSAGE, SLIM_SUMMARIZED_SYSTEM_MESSAGE
+from .sampler.slim_sampler import SlimSampler
 from .sampler.tongyi_dr_sampler import SLIM_TONGYI_SYSTEM_PROMPT, SLIM_SUMMARIZED_TONGYI_SYSTEM_PROMPT, TONGYI_SEARCH_TOOL, TONGYI_VISIT_TOOL
 from .sampler.search_r1_sampler import SearchR1Sampler
 from .sampler.search_r1_chat_sampler import SearchR1ChatSampler
@@ -633,7 +635,7 @@ def main():
         ),
         "slim-o3-200": SlimSampler(
             model="azure/o3",
-            system_message=SLIM_SYSTEM_MESSAGE,
+            # system_message=SLIM_SYSTEM_MESSAGE,
             max_iterations=200,
             max_tokens=32768,
             summary_interval=50,
@@ -920,7 +922,7 @@ def main():
 
         "slim-gpt-oss-120b-50": SlimSampler(
             model="hosted_vllm/gpt-oss-120b",
-            system_message=SLIM_SYSTEM_MESSAGE,
+            # system_message=SLIM_SYSTEM_MESSAGE,
             # use_responses_api=True,
             base_url="http://localhost:8000/v1",
             max_iterations=50,
@@ -932,7 +934,7 @@ def main():
 
         "slim-gpt-oss-120b-150": SlimSampler(
             model="hosted_vllm/gpt-oss-120b",
-            system_message=SLIM_SYSTEM_MESSAGE,
+            # system_message=SLIM_SYSTEM_MESSAGE,
             # use_responses_api=True,
             base_url="http://localhost:8000/v1",
             max_iterations=150,
@@ -1152,6 +1154,13 @@ def main():
                     n_repeats=args.n_repeats or 1,
                     n_threads=args.n_threads or 1,
                     subset_name="text",
+                )
+            case "deepsearchqa":
+                return DeepSearchQAEval(
+                    grader_model=grading_sampler,
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
                 )
             case _:
                 raise Exception(f"Unrecognized eval type: {eval_name}")
