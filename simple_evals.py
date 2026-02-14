@@ -19,6 +19,7 @@ from .mgsm_eval import MGSMEval
 from .mmlu_eval import MMLUEval
 from .simpleqa_eval import SimpleQAEval
 from .deepsearchqa_eval import DeepSearchQAEval
+from .gaia_eval import GaiaEval
 # from .humaneval_eval import HumanEval
 from .sampler.chat_completion_sampler import (
     OPENAI_SYSTEM_MESSAGE_API,
@@ -293,718 +294,62 @@ def main():
             tools=[get_anthropic_web_search_tool(max_uses=5)],
         ),
 
-
-        "o4-mini": LiteLLMSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o4-mini-1": ReactSampler(
-            model="azure/o4-mini",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=1,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o4-mini-5": ReactSampler(
-            model="azure/o4-mini",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=5,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o4-mini-10": ReactSampler(
-            model="azure/o4-mini",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-o4-mini-10": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=10,
-            max_tokens=32768,
-            summary_mode="none",
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-25": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=25,
-            max_tokens=32768,
-            summary_mode="none",
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-50": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=50,
-            max_tokens=32768,
-            summary_mode="none",
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-150": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=150,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-1": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=1,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-5": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=5,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-10": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-25": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-50": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o4-mini-100": SearchO1ToolChatSampler(
-            model="azure/o4-mini",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=100,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "gpt-researcher-o4-mini": GPTResearcherSampler(
-            report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher-o4-mini.json"),
-        ),
-        "hf-odr-o4-mini": SmolAgentSampler(
-            model="azure/o4-mini",
-            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-            verbosity_level=-1, # -1 for no logs, default is 1
-        ),
-
-        # num turns ablation
-        "slim-o4-mini-100-25": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        # summary interval ablation
-        "slim-o4-mini-token-100-32k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=32768,
-            summary_mode='token',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-token-100-64k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=65536,
-            summary_mode='token',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-o4-mini-100-no-visit": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            no_visit_tool=True,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-no-query-in-visit": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            no_query_in_visit=True,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        # web search tool ablation, default is newline-rouge
-        "slim-o4-mini-100-newline-bm25": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            scoring_func='bm25',
-            chunking_func='newline',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-words_100-rouge": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            scoring_func='rouge',
-            chunking_func='words_100',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-words_100-bm25": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            scoring_func='bm25',
-            chunking_func='words_100',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        # retrieval tool ablation
-        "slim-o4-mini-100-k10-3k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=10,
-            content_length=3000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-k10-20k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=10,
-            content_length=20000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-k20-3k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=20,
-            content_length=3000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-k20-10k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=20,
-            content_length=10000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o4-mini-100-k20-20k": SlimSampler(
-            model="azure/o4-mini",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=20,
-            content_length=20000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "o3-deep-research": ResponsesSampler(
-            model="o3-deep-research-2025-06-26",
-            max_tokens=32768,
-            reasoning_model=True,
-            tools=[get_openai_web_search_tool(search_context_size="medium")],
-            # extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "o3": LiteLLMSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o3-1": ReactSampler(
-            model="azure/o3",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=1,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o3-5": ReactSampler(
-            model="azure/o3",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=5,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o3-10": ReactSampler(
-            model="azure/o3",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o3-10-k10-3k": ReactSampler(
-            model="azure/o3",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            topk=10,
-            content_length=3000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o3-10-k5-3k": ReactSampler(
-            model="azure/o3",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            topk=5,
-            content_length=3000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-o3-10-k5-10k": ReactSampler(
-            model="azure/o3",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            topk=5,
-            content_length=10000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-o3-10": SlimSampler(
-            model="azure/o3",
-            max_iterations=10,
-            max_tokens=32768,
-            summary_mode="none",
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-25": SlimSampler(
-            model="azure/o3",
-            max_iterations=25,
-            max_tokens=32768,
-            summary_mode="none",
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-50": SlimSampler(
-            model="azure/o3",
-            max_iterations=50,
-            max_tokens=32768,
-            summary_mode="none",
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-25": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-150": SlimSampler(
-            model="azure/o3",
-            max_iterations=150,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-200": SlimSampler(
-            model="azure/o3",
-            # system_message=SLIM_SYSTEM_MESSAGE,
-            max_iterations=200,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        # summary interval ablation
-        "slim-o3-token-100-32k": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=32768,
-            summary_mode='token',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-token-100-64k": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=65536,
-            summary_mode='token',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        # web search tool ablation, default is newline-rouge
-        "slim-o3-100-newline-bm25": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            scoring_func='bm25',
-            chunking_func='newline',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-words_100-rouge": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            scoring_func='rouge',
-            chunking_func='words_100',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-words_100-bm25": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            scoring_func='bm25',
-            chunking_func='words_100',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        # retrieval tool ablation
-        "slim-o3-100-k10-3k": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=10,
-            content_length=3000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-k10-20k": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=10,
-            content_length=20000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-k20-3k": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=20,
-            content_length=10000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-o3-100-k20-20k": SlimSampler(
-            model="azure/o3",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            topk=20,
-            content_length=20000,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "search-o1-tool-o3-1": SearchO1ToolChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=1,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o3-5": SearchO1ToolChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=5,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o3-10": SearchO1ToolChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o3-25": SearchO1ToolChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=25,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o3-50": SearchO1ToolChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-o3-100": SearchO1ToolChatSampler(
-            model="azure/o3",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=100,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "gpt-researcher-o3": GPTResearcherSampler(
-            report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher-o3.json"),
-        ),
-        "hf-odr-o3": SmolAgentSampler(
-            model="azure/o3",
-            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-            verbosity_level=-1, # -1 for no logs, default is 1
-        ),
-
-        "claude-4-sonnet": LiteLLMSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=CLAUDE_SYSTEM_MESSAGE_LMSYS,
-            max_tokens=32768,
-            reasoning_model=True,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "react-claude-4-sonnet-1": ReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=1,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-claude-4-sonnet-5": ReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=5,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "react-claude-4-sonnet-10": ReactSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=REACT_SYSTEM_MESSAGE,
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-claude-4-sonnet-10": SlimSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_iterations=10,
-            max_tokens=32768,
-            summary_mode='none',
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "slim-claude-4-sonnet-25": SlimSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_iterations=25,
-            max_tokens=32768,
-            summary_mode='none',
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "slim-claude-4-sonnet-50": SlimSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_iterations=50,
-            max_tokens=32768,
-            summary_mode='none',
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "slim-claude-4-sonnet-100": SlimSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_iterations=100,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "slim-claude-4-sonnet-150": SlimSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_iterations=150,
-            max_tokens=32768,
-            summary_interval=50,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-
-        "search-o1-tool-claude-4-sonnet-1": SearchO1ToolChatSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=1,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "search-o1-tool-claude-4-sonnet-5": SearchO1ToolChatSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=5,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "search-o1-tool-claude-4-sonnet-10": SearchO1ToolChatSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "search-o1-tool-claude-4-sonnet-25": SearchO1ToolChatSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=25,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "search-o1-tool-claude-4-sonnet-50": SearchO1ToolChatSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "search-o1-tool-claude-4-sonnet-100": SearchO1ToolChatSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=100,
-            extra_kwargs={"thinking": {"type": "enabled", "budget_tokens": 30000}, "allowed_openai_params": ['thinking']}
-        ),
-        "gpt-researcher-claude-4-sonnet": GPTResearcherSampler(
-            report_type="deep",
-            config_path=get_config_path("configs/gpt-researcher-claude-4-sonnet.json"),
-        ),
-        "hf-odr-claude-4-sonnet": SmolAgentSampler(
-            model="vertex_ai/claude-sonnet-4@20250514",
-            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
-            verbosity_level=-1, # -1 for no logs, default is 1
-        ),
-
-        "kimi-k2-instruct": LiteLLMSampler(
-            model="together_ai/moonshotai/Kimi-K2-Instruct",
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "gpt-oss-120b": LiteLLMSampler(
-            model="together_ai/openai/gpt-oss-120b",
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "slim-gpt-oss-120b-10": SlimSampler(
-            model="together_ai/openai/gpt-oss-120b",
-            max_iterations=10,
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "gpt-oss-120b": LiteLLMSampler(
-            model="hosted_vllm/gpt-oss-120b",
-            base_url="http://localhost:8000/v1",
-            max_tokens=32768,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-gpt-oss-120b-50": SlimSampler(
-            model="hosted_vllm/gpt-oss-120b",
-            # system_message=SLIM_SYSTEM_MESSAGE,
-            # use_responses_api=True,
-            base_url="http://localhost:8000/v1",
-            max_iterations=50,
-            max_tokens=32768,
-            keep_reasoning=True,
-            summary_mode='none',
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-gpt-oss-120b-150": SlimSampler(
-            model="hosted_vllm/gpt-oss-120b",
-            # system_message=SLIM_SYSTEM_MESSAGE,
-            # use_responses_api=True,
-            base_url="http://localhost:8000/v1",
-            max_iterations=150,
-            max_tokens=32768,
-            keep_reasoning=True,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "search-o1-tool-gpt-oss-120b-10": SearchO1ToolChatSampler(
-            model="hosted_vllm/gpt-oss-120b",
-            base_url="http://localhost:8000/v1",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "search-o1-tool-gpt-oss-120b-50": SearchO1ToolChatSampler(
-            model="hosted_vllm/gpt-oss-120b",
-            base_url="http://localhost:8000/v1",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-tongyi-deepresearch-30b-a3b-150": SlimSampler(
-            model="hosted_vllm/Tongyi-DeepResearch-30B-A3B",
-            system_message=SLIM_TONGYI_SYSTEM_PROMPT,
-            summary_system_message=SLIM_SUMMARIZED_TONGYI_SYSTEM_PROMPT,
-            search_tool=TONGYI_SEARCH_TOOL,
-            visit_tool=TONGYI_VISIT_TOOL,
-            base_url="http://localhost:8001/v1",
-            max_iterations=150,
-            max_tokens=32768,
-            keep_reasoning=True,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "slim-tongyi-deepresearch-30b-a3b-10": SlimSampler(
-            model="openrouter/alibaba/tongyi-deepresearch-30b-a3b",
-            system_message=SLIM_TONGYI_SYSTEM_PROMPT,
-            summary_system_message=SLIM_SUMMARIZED_TONGYI_SYSTEM_PROMPT,
-            search_tool=TONGYI_SEARCH_TOOL,
-            visit_tool=TONGYI_VISIT_TOOL,
-            # base_url="http://localhost:8001/v1",
-            max_iterations=10,
-            max_tokens=32768,
-            keep_reasoning=True,
-            summary_interval=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-
-        "search-o1-tool-tongyi-deepresearch-30b-a3b-10": SearchO1ToolChatSampler(
-            model="openrouter/alibaba/tongyi-deepresearch-30b-a3b",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=10,
-            extra_kwargs={"seed": args.model_seed}
-        ),
-        "search-o1-tool-tongyi-deepresearch-30b-a3b-50": SearchO1ToolChatSampler(
-            model="openrouter/alibaba/tongyi-deepresearch-30b-a3b",
-            max_tokens=32768,
-            reasoning_model=True,
-            max_search_limit=50,
-            extra_kwargs={"seed": args.model_seed}
-        ),
     }
+
+    for model_name, model_path in [
+        ("o3", "azure/o3"),
+        ("o4-mini", "azure/o4-mini"),
+        ("claude-4-sonnet", "vertex_ai/claude-sonnet-4@20250514"),
+        ("gpt-oss-120b", "openrouter/openai/gpt-oss-120b"),
+        ("kimi-k2-thinking", "openrouter/moonshotai/kimi-k2-thinking")
+        ("deepseek-3.2", "openrouter/deepseek/deepseek-v3.2")
+    ]:
+        # model by itself
+        models[f"{model_name}"] = LiteLLMSampler(
+            model=model_path,
+            max_tokens=32768,
+            reasoning_model=True,
+            extra_kwargs={"seed": args.model_seed}
+        )
+        # first the react baselines
+        for i in [1, 5, 10]:
+            models[f"react-{model_name}-{i}"] = ReactSampler(
+                model=model_path,
+                system_message=REACT_SYSTEM_MESSAGE,
+                max_iterations=i,
+                max_tokens=32768,
+                extra_kwargs={"seed": args.model_seed}
+            )
+        # then search o1 tool baselines
+        for i in [1, 5, 10, 25, 50, 100]:
+            models[f"search-o1-tool-{model_name}-{i}"] = SearchO1ToolChatSampler(
+                model=model_path,
+                max_tokens=32768,
+                reasoning_model=True,
+                max_search_limit=i,
+                extra_kwargs={"seed": args.model_seed}
+            )
+        # gpt researcher and hf odr
+        models[f"gpt-researcher-{model_name}"] = GPTResearcherSampler(
+            report_type="deep",
+            config_path=get_config_path(f"configs/gpt-researcher-{model_name}.json"),
+        )
+        models[f"hf-odr-{model_name}"] = SmolAgentSampler(
+            model=model_path,
+            system_message=SMOLAGENT_CODEAGENT_SYSTEM_MESSAGE,
+            verbosity_level=-1, # -1 for no logs, default is 1
+        )
+        # then slim
+        for i in [10, 25, 50, 100, 150, 200]:
+            models[f"slim-{model_name}-{i}"] = SlimSampler(
+                model=model_path,
+                max_iterations=i,
+                max_tokens=32768,
+                summary_interval=50,
+                tool_port=args.tool_port,
+                extra_kwargs={"seed": args.model_seed}
+            )
+
 
     if args.list_models:
         print("Available models:")
@@ -1157,6 +502,13 @@ def main():
                 )
             case "deepsearchqa":
                 return DeepSearchQAEval(
+                    grader_model=grading_sampler,
+                    num_examples=10 if debug_mode else num_examples,
+                    n_repeats=args.n_repeats or 1,
+                    n_threads=args.n_threads or 1,
+                )
+            case "gaia":
+                return GaiaEval(
                     grader_model=grading_sampler,
                     num_examples=10 if debug_mode else num_examples,
                     n_repeats=args.n_repeats or 1,

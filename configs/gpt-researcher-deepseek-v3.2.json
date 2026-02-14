@@ -1,0 +1,6 @@
+{
+    "RETRIEVER": "serper",
+    "FAST_LLM": "openrouter:deepseek/deepseek-v3.2",
+    "SMART_LLM": "openrouter:deepseek/deepseek-v3.2",
+    "STRATEGIC_LLM": "openrouter:deepseek/deepseek-v3.2"
+}

@@ -1,0 +1,6 @@
+{
+    "RETRIEVER": "serper",
+    "FAST_LLM": "openrouter:moonshotai/kimi-k2-thinking",
+    "SMART_LLM": "openrouter:moonshotai/kimi-k2-thinking",
+    "STRATEGIC_LLM": "openrouter:moonshotai/kimi-k2-thinking"
+}

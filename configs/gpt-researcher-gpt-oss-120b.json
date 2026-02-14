@@ -1,0 +1,6 @@
+{
+    "RETRIEVER": "serper",
+    "FAST_LLM": "openrouter:openai/gpt-oss-120b",
+    "SMART_LLM": "openrouter:openai/gpt-oss-120b",
+    "STRATEGIC_LLM": "openrouter:openai/gpt-oss-120b"
+}
