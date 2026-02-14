@@ -97,6 +97,9 @@ def main():
     parser.add_argument(
         "--checkpoint-interval", type=int, help="Interval to store checkpoint", default=-1
     )
+    parser.add_argument(
+        "--tool-port", type=int, help="Port to use for the tool", default=8006,
+    )
 
     args = parser.parse_args()
 
@@ -301,8 +304,8 @@ def main():
         ("o4-mini", "azure/o4-mini"),
         ("claude-4-sonnet", "vertex_ai/claude-sonnet-4@20250514"),
         ("gpt-oss-120b", "openrouter/openai/gpt-oss-120b"),
-        ("kimi-k2-thinking", "openrouter/moonshotai/kimi-k2-thinking")
-        ("deepseek-3.2", "openrouter/deepseek/deepseek-v3.2")
+        ("kimi-k2-thinking", "openrouter/moonshotai/kimi-k2-thinking"),
+        ("deepseek-3.2", "openrouter/deepseek/deepseek-v3.2"),
     ]:
         # model by itself
         models[f"{model_name}"] = LiteLLMSampler(
