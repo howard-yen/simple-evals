@@ -321,7 +321,7 @@ def main():
                 system_message=REACT_SYSTEM_MESSAGE,
                 max_iterations=i,
                 max_tokens=32768,
-                extra_kwargs={"seed": args.model_seed}
+                extra_kwargs={"seed": args.model_seed} if "claude" not in model_name else None
             )
         # then search o1 tool baselines
         for i in [1, 5, 10, 25, 50, 100]:
@@ -330,7 +330,7 @@ def main():
                 max_tokens=32768,
                 reasoning_model=True,
                 max_search_limit=i,
-                extra_kwargs={"seed": args.model_seed}
+                extra_kwargs={"seed": args.model_seed} if "claude" not in model_name else None
             )
         # gpt researcher and hf odr
         models[f"gpt-researcher-{model_name}"] = GPTResearcherSampler(
@@ -350,7 +350,7 @@ def main():
                 max_tokens=32768,
                 summary_interval=50,
                 tool_port=args.tool_port,
-                extra_kwargs={"seed": args.model_seed}
+                extra_kwargs={"seed": args.model_seed} if "claude" not in model_name else None
             )
 
 

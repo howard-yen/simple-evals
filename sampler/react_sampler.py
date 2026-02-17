@@ -41,8 +41,8 @@ The search tool will return a list of urls and their content. After you have col
 
 class ReactSampler(SamplerBase):
     def __init__(
-        self, 
-        model: str, 
+        self,
+        model: str,
         system_message: str | None = None,
         max_iterations: int=10,
         max_tokens: int=1024,
@@ -83,13 +83,13 @@ class ReactSampler(SamplerBase):
                 if message['content'] is None and message.get("tool_calls") is None and message.get("reasoning_content") is None:
                     print(f"LiteLLM returned empty response: {response}")
                     raise ValueError("Litellm API returned empty response; retrying")
-                
+
                 return response
 
             except litellm.BadRequestError as e:
                 print(f"Bad request error: {e}. Returning empty response.")
                 return f"Bad request error: {e}. Returning empty response."
-            
+
             except litellm.APIConnectionError as e:
                 print(f"API connection error: {e}. Returning empty response.")
                 return f"API connection error: {e}. Returning empty response."
@@ -97,7 +97,7 @@ class ReactSampler(SamplerBase):
             except Exception as e:
                 if trial >= 5:
                     return f"Error: {e}. Returning empty response after 5 trials."
-                    
+
                 exception_backoff = 2**trial  # exponential back off
                 exception_backoff = min(exception_backoff, 120)
                 print(f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}")
@@ -117,7 +117,7 @@ class ReactSampler(SamplerBase):
                 self._pack_message("developer", self.system_message)
             ] + message_list
         original_message_list = copy.deepcopy(message_list)
-        
+
         while cur_iter <= self.max_iterations:
             print(f"Iteration {cur_iter}\n")
             if cur_iter == self.max_iterations:
@@ -137,7 +137,7 @@ class ReactSampler(SamplerBase):
                         actual_queried_message_list=original_message_list,
                     )
                 generation_time = response._response_ms*1000
-            
+
             message = response.choices[0].message
             tool_calls = message.get("tool_calls", None)
             all_usages.append(get_usage_dict(response.usage))
@@ -151,8 +151,15 @@ class ReactSampler(SamplerBase):
                 message_list.append(message)
                 start_time = time.time()
                 for tool_call in tool_calls:
-                    function_args = json.loads(tool_call.function.arguments)
-                    print(f"Function args: {function_args}")
+                    try:
+                        function_args = json.loads(tool_call.function.arguments)
+                    except json.decoder.JSONDecodeError:
+                        function_args = tool_call.function.arguments
+                        tool_response = f"Error: Invalid JSON in tool call: \n{function_args}"
+                        extra_convo.append(self._pack_message(f"tool_call {tool_call.function.name}", function_args))
+                        message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': tool_response})
+                        extra_convo.append(self._pack_message('tool', tool_response))
+                        continue
 
                     if tool_call.function.name != "search":
                         tool_response = f"Error: {tool_call.function.name} is not a valid tool. Please use the search tool."
@@ -197,4 +204,4 @@ class ReactSampler(SamplerBase):
             response_metadata=metadata,
             actual_queried_message_list=original_message_list,
         )
-        
+
