@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 
 
@@ -94,8 +95,22 @@ VISIT_RESPONSE_TOOL_NO_QUERY = {
 }
 
 class WebSearchTool():
-    def __init__(self, port: int=8006):
+    def __init__(self, port: int=8006, max_retries: int=3, timeout: int=120):
         self.url = f"http://localhost:{port}"
+        self.max_retries = max_retries
+        self.timeout = timeout
+
+    def _post_with_retry(self, endpoint: str, payload: str) -> requests.Response:
+        for attempt in range(self.max_retries):
+            try:
+                return requests.post(self.url + endpoint, data=payload, timeout=self.timeout)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt < self.max_retries - 1:
+                    wait = 2 ** attempt
+                    print(f"Request to {endpoint} failed (attempt {attempt + 1}/{self.max_retries}): {e}. Retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise
 
     def search(self, query: str, topk: int = 10) -> str:
         """Search the web for information. This tool will return a list of urls that are relevant to the query."""
@@ -103,7 +118,7 @@ class WebSearchTool():
             return json.dumps({"error": "Please provide a query to search for."})
 
         payload = json.dumps({"query": query, "topk": topk})
-        response = requests.post(self.url + "/search", data=payload)
+        response = self._post_with_retry("/search", payload)
         return response.json()['output']
 
     def open_url(self, url: str, query: str = "", content_length: int = 10000, scoring_func: str = "rouge", chunking_func: str = "newline") -> str:
@@ -113,7 +128,7 @@ class WebSearchTool():
 
         payload = {"url": url, "query": query, "content_length": content_length, "scoring_func": scoring_func, "chunking_func": chunking_func}
         payload = json.dumps(payload)
-        response = requests.post(self.url + "/open_url", data=payload)
+        response = self._post_with_retry("/open_url", payload)
         try: 
             out = response.json()
             return out['output']
@@ -129,7 +144,7 @@ class WebSearchTool():
             return "Search error: Please provide a query to search for."
 
         payload = json.dumps({"query": query, "topk": topk, "content_length": content_length})
-        response = requests.post(self.url + "/search_open_url", data=payload)
+        response = self._post_with_retry("/search_open_url", payload)
         return response.json()['output']
 
     def search_o1(self, query: str, topk: int = 10) -> str:
@@ -138,7 +153,7 @@ class WebSearchTool():
             return json.dumps({"output": "Search error: Please provide a query to search for.", "search_results": []})
 
         payload = json.dumps({"query": query, "topk": topk})
-        response = requests.post(self.url + "/search_o1", data=payload)
+        response = self._post_with_retry("/search_o1", payload)
         try:
             out = response.json()
             return out
