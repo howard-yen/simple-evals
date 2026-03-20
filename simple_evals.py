@@ -300,12 +300,15 @@ def main():
     }
 
     for model_name, model_path in [
+        ("gpt-4.1", "azure/gpt-4.1"),
         ("o3", "azure/o3"),
         ("o4-mini", "azure/o4-mini"),
         ("claude-4-sonnet", "vertex_ai/claude-sonnet-4@20250514"),
         ("gpt-oss-120b", "openrouter/openai/gpt-oss-120b"),
         ("kimi-k2-thinking", "openrouter/moonshotai/kimi-k2-thinking"),
         ("deepseek-3.2", "openrouter/deepseek/deepseek-v3.2"),
+        ("glm-5", "openrouter/z-ai/glm-5"),
+        ("minimax-m2.5", "openrouter/minimax/minimax-m2.5"),
     ]:
         # model by itself
         models[f"{model_name}"] = LiteLLMSampler(
@@ -353,6 +356,29 @@ def main():
                 extra_kwargs={"seed": args.model_seed} if "claude" not in model_name else None
             )
 
+        for i in [10, 25, 50, 100, 150, 200]:
+            models[f"slim-orig-{model_name}-{i}"] = SlimSampler(
+                model=model_path,
+                max_iterations=i,
+                max_tokens=32768,
+                summary_interval=50,
+                tool_port=args.tool_port,
+                extra_kwargs={"seed": args.model_seed} if "claude" not in model_name else {"vertex_project": "samaya-backend", "vertex_location": "global"}
+            )
+
+        # then slim
+        for i in [10, 25, 50, 100, 150, 200]:
+            models[f"slim-token-{model_name}-{i}"] = SlimSampler(
+                model=model_path,
+                max_iterations=i,
+                max_tokens=32768,
+                summary_interval=65536,
+                summary_mode='token',
+                chunking_func='words_100',
+                tool_port=args.tool_port,
+                extra_kwargs={"seed": args.model_seed} if "claude" not in model_name else {"vertex_project": "samaya-backend", "vertex_location": "global"}
+            )
+
 
     if args.list_models:
         print("Available models:")
@@ -384,6 +410,13 @@ def main():
 
     grading_sampler = ChatCompletionSampler(
         model="gpt-4.1-2025-04-14",
+        # model="azure/gpt-4.1",
+        # base_url="http://localhost:8010/v1",
+        system_message=OPENAI_SYSTEM_MESSAGE_API,
+        max_tokens=2048,
+    )
+    grading_sampler = LiteLLMSampler(
+        model="azure/gpt-4.1",
         # base_url="http://localhost:8010/v1",
         system_message=OPENAI_SYSTEM_MESSAGE_API,
         max_tokens=2048,
