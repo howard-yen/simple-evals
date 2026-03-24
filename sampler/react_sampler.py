@@ -49,6 +49,7 @@ class ReactSampler(SamplerBase):
         temperature: float=1.0,
         topk: int=10,
         content_length: int=10000,
+        base_url: str | None = None,
         extra_kwargs: Dict[str, Any]={},
     ):
         self.model = model
@@ -60,6 +61,7 @@ class ReactSampler(SamplerBase):
         self.topk = topk
         self.content_length = content_length
         self.web_search_tool = WebSearchTool()
+        self.base_url = base_url
 
 
     def _pack_message(self, role, content):
@@ -77,6 +79,7 @@ class ReactSampler(SamplerBase):
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
                     timeout=7200,
+                    base_url=self.base_url,
                     **kwargs
                 )
                 message = response['choices'][0]['message']

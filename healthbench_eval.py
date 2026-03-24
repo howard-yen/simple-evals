@@ -426,7 +426,7 @@ class HealthBenchEval(Eval):
             prompt_messages = row["prompt"]
             # HY: This is not in the original code, but I think it makes sense to add another prompt explicitly asking the system to act as a physician.
             prompt_messages.insert(0, dict(
-                content="You are a medical professional. Please act as a physician when responding to the user.", 
+                content="You are a medical professional. Please act as a physician when responding to the user.",
                 role="user"
             ))
 
@@ -463,7 +463,7 @@ class HealthBenchEval(Eval):
                 "completion": model_response,
                 "prompt_id": row["prompt_id"],
                 "completion_id": hashlib.sha256(
-                    (row["prompt_id"] + response_text).encode("utf-8")
+                    (row["prompt_id"] + response_text if response_text is not None else "").encode("utf-8")
                 ).hexdigest(),
             }
 

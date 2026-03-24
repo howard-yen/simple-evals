@@ -299,28 +299,33 @@ def main():
 
     }
 
-    for model_name, model_path in [
-        ("gpt-4.1", "azure/gpt-4.1"),
-        ("o3", "azure/o3"),
-        ("o4-mini", "azure/o4-mini"),
-        ("claude-4-sonnet", "vertex_ai/claude-sonnet-4@20250514"),
-        ("gpt-oss-120b", "openrouter/openai/gpt-oss-120b"),
-        ("kimi-k2-thinking", "openrouter/moonshotai/kimi-k2-thinking"),
-        ("deepseek-3.2", "openrouter/deepseek/deepseek-v3.2"),
-        ("glm-5", "openrouter/z-ai/glm-5"),
-        ("minimax-m2.5", "openrouter/minimax/minimax-m2.5"),
+    for model_name, model_path, base_url in [
+        ("gpt-4.1", "azure/gpt-4.1", None),
+        ("o3", "azure/o3", None),
+        ("o4-mini", "azure/o4-mini", None),
+        ("claude-4-sonnet", "vertex_ai/claude-sonnet-4@20250514", None),
+        # ("gpt-oss-120b", "openrouter/openai/gpt-oss-120b", None),
+        ("kimi-k2-thinking", "openrouter/moonshotai/kimi-k2-thinking", None),
+        ("deepseek-3.2", "openrouter/deepseek/deepseek-v3.2", None),
+        ("glm-5", "openrouter/z-ai/glm-5", None),
+        ("minimax-m2.5", "openrouter/minimax/minimax-m2.5", None),
+        ("gpt-oss-120b", "openai/gpt-oss-120b", "http://localhost:8000/v1"),
+        ("minimax-m2.5", "openai/minimax-m2.5", "http://localhost:8000/v1"),
+        ("tongyi-deepresearch-30b", "openai/tongyi-deepresearch-30b", "http://localhost:8000/v1"),
     ]:
         # model by itself
         models[f"{model_name}"] = LiteLLMSampler(
             model=model_path,
             max_tokens=32768,
             reasoning_model=True,
+            base_url=base_url,
             extra_kwargs={"seed": args.model_seed}
         )
         # first the react baselines
         for i in [1, 5, 10]:
             models[f"react-{model_name}-{i}"] = ReactSampler(
                 model=model_path,
+                base_url=base_url,
                 system_message=REACT_SYSTEM_MESSAGE,
                 max_iterations=i,
                 max_tokens=32768,
@@ -330,6 +335,7 @@ def main():
         for i in [1, 5, 10, 25, 50, 100]:
             models[f"search-o1-tool-{model_name}-{i}"] = SearchO1ToolChatSampler(
                 model=model_path,
+                base_url=base_url,
                 max_tokens=32768,
                 reasoning_model=True,
                 max_search_limit=i,
@@ -349,6 +355,7 @@ def main():
         for i in [10, 25, 50, 100, 150, 200]:
             models[f"slim-{model_name}-{i}"] = SlimSampler(
                 model=model_path,
+                base_url=base_url,
                 max_iterations=i,
                 max_tokens=32768,
                 summary_interval=50,
@@ -359,6 +366,7 @@ def main():
         for i in [10, 25, 50, 100, 150, 200]:
             models[f"slim-orig-{model_name}-{i}"] = SlimSampler(
                 model=model_path,
+                base_url=base_url,
                 max_iterations=i,
                 max_tokens=32768,
                 summary_interval=50,
@@ -370,6 +378,7 @@ def main():
         for i in [10, 25, 50, 100, 150, 200]:
             models[f"slim-token-{model_name}-{i}"] = SlimSampler(
                 model=model_path,
+                base_url=base_url,
                 max_iterations=i,
                 max_tokens=32768,
                 summary_interval=65536,

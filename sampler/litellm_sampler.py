@@ -9,6 +9,7 @@ import litellm
 
 from ..types import MessageList, SamplerBase, SamplerResponse
 from ..common import get_usage_dict
+from pydantic import BaseModel
 
 # Suppress repeated Google Cloud SDK warnings
 warnings.filterwarnings("once", category=UserWarning, module="google.auth._default")
@@ -121,6 +122,42 @@ class LiteLLMSampler(SamplerBase):
                 exception_backoff = 2**trial  # expontial back off
                 exception_backoff = min(exception_backoff, 128)
                 print(f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}")
+                time.sleep(exception_backoff)
+                trial += 1
+            # unknown error shall throw exception
+
+    def parse(self, message_list: MessageList, schema: BaseModel) -> str:
+        if self.system_message:
+            message_list = [
+                self._pack_message("developer", self.system_message)
+            ] + message_list
+        trial = 0
+        while True:
+            try:
+                response = litellm.completion(
+                    model=self.model,
+                    messages=message_list,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    response_format=schema,
+                    base_url=self.base_url,
+                    timeout=3600,
+                    **self.extra_kwargs,
+                )
+                content = response['choices'][0]['message']['content']
+                if content is None:
+                    raise ValueError("LiteLLM API returned empty response; retrying")
+                parsed = schema.model_validate_json(content)
+                return parsed
+            except litellm.BadRequestError as e:
+                print("Bad Request Error", e)
+                return None
+            except Exception as e:
+                exception_backoff = 2**trial  # expontial back off
+                exception_backoff = min(exception_backoff, 128)
+                print(
+                    f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}",
+                )
                 time.sleep(exception_backoff)
                 trial += 1
             # unknown error shall throw exception

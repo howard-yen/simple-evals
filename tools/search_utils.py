@@ -95,7 +95,7 @@ VISIT_RESPONSE_TOOL_NO_QUERY = {
 }
 
 class WebSearchTool():
-    def __init__(self, port: int=8006, max_retries: int=3, timeout: int=120):
+    def __init__(self, port: int=8006, max_retries: int=3, timeout: int=1500):
         self.url = f"http://localhost:{port}"
         self.max_retries = max_retries
         self.timeout = timeout
@@ -103,7 +103,7 @@ class WebSearchTool():
     def _post_with_retry(self, endpoint: str, payload: str) -> requests.Response:
         for attempt in range(self.max_retries):
             try:
-                return requests.post(self.url + endpoint, data=payload, timeout=self.timeout)
+                return requests.post(self.url + endpoint, data=payload, headers={"Content-Type": "application/json"}, timeout=self.timeout)
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
                 if attempt < self.max_retries - 1:
                     wait = 2 ** attempt
