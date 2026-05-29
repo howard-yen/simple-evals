@@ -312,6 +312,7 @@ def main():
         ("gpt-oss-120b", "openai/gpt-oss-120b", "http://localhost:8000/v1"),
         ("minimax-m2.5", "openai/minimax-m2.5", "http://localhost:8000/v1"),
         ("tongyi-deepresearch-30b", "openai/tongyi-deepresearch-30b", "http://localhost:8000/v1"),
+        ("tongyi-deepresearch-30b-a3b", "openrouter/alibaba/tongyi-deepresearch-30b-a3b", None),
     ]:
         # model by itself
         models[f"{model_name}"] = LiteLLMSampler(

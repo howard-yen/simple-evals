@@ -141,6 +141,8 @@ Now you should analyze each web page and find helpful information based on the c
 
     def _extract_answer(self, text: str, mode: str = 'infogen') -> str:
         """Extract information from model output based on mode"""
+        if text is None:
+            return "No helpful information found."
         extracted_text = ''
         if mode == 'codegen':
             # Extract the code between ```python and ```
@@ -316,7 +318,7 @@ Now you should analyze each web page and find helpful information based on the c
                         continue
 
                     search_query = function_args['query']
-                    if search_count < self.max_search_limit and search_query not in executed_search_queries:
+                    if search_count < self.max_search_limit and (isinstance(search_query, list) or search_query not in executed_search_queries):
                         start_time = time.time()
                         # Perform search
                         search_results = self.search_tool.search_o1(search_query, topk=self.topk)
@@ -372,15 +374,20 @@ Now you should analyze each web page and find helpful information based on the c
 
                         # Add to extra conversation for metadata
                         extra_convo.append(self._pack_message(f"tool", extracted_info))
-                        search_count += 1
-                        executed_search_queries.add(search_query)
+                        if isinstance(search_query, list):
+                            search_count += len(search_query)
+                            for q in search_query:
+                                executed_search_queries.add(q)
+                        else:
+                            executed_search_queries.add(search_query)
+                            search_count += 1
                     
                     elif search_count >= self.max_search_limit:
                         limit_message = f"\n{BEGIN_SEARCH_RESULT}\nThe maximum search limit is exceeded. You are not allowed to search.\n{END_SEARCH_RESULT}\n"
                         extra_convo.append(self._pack_message("tool", limit_message))
                         message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': limit_message})
                         
-                    elif search_query in executed_search_queries:
+                    elif isinstance(search_query, str) and search_query in executed_search_queries:
                         limit_message = f"\n{BEGIN_SEARCH_RESULT}\nYou have searched this query. Please refer to previous results.\n{END_SEARCH_RESULT}\n"
                         extra_convo.append(self._pack_message("tool", limit_message))
                         message_list.append({'tool_call_id': tool_call.id, 'role': 'tool', 'name': tool_call.function.name, 'content': limit_message})

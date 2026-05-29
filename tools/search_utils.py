@@ -94,6 +94,13 @@ VISIT_RESPONSE_TOOL_NO_QUERY = {
     "parameters": VISIT_TOOL_NO_QUERY['function']['parameters'],
 }
 
+def _ensure_list(value):
+    """Return value as a list if it isn't one already."""
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
 class WebSearchTool():
     def __init__(self, port: int=8006, max_retries: int=3, timeout: int=1500):
         self.url = f"http://localhost:{port}"
@@ -112,8 +119,7 @@ class WebSearchTool():
                 else:
                     raise
 
-    def search(self, query: str, topk: int = 10) -> str:
-        """Search the web for information. This tool will return a list of urls that are relevant to the query."""
+    def _search_single(self, query: str, topk: int = 10) -> str:
         if not query or not query.strip():
             return json.dumps({"error": "Please provide a query to search for."})
 
@@ -121,15 +127,20 @@ class WebSearchTool():
         response = self._post_with_retry("/search", payload)
         return response.json()['output']
 
-    def open_url(self, url: str, query: str = "", content_length: int = 10000, scoring_func: str = "rouge", chunking_func: str = "newline") -> str:
-        """Open a url and optionally search for a specific query. By default, this tool will return the beginning of the page, but searching for a specific query will return the relevant part of the page that contains the query text."""
+    def search(self, query, topk: int = 10):
+        """Search the web for information. Accepts a single query string or a list of queries."""
+        queries = _ensure_list(query)
+        results = [self._search_single(q, topk) for q in queries]
+        return results if len(results) > 1 else results[0]
+
+    def _open_url_single(self, url: str, query: str = "", content_length: int = 10000, scoring_func: str = "rouge", chunking_func: str = "newline") -> str:
         if not url or not isinstance(url, str) or not url.strip():
             return "Please provide a url to open."
 
         payload = {"url": url, "query": query, "content_length": content_length, "scoring_func": scoring_func, "chunking_func": chunking_func}
         payload = json.dumps(payload)
         response = self._post_with_retry("/open_url", payload)
-        try: 
+        try:
             out = response.json()
             return out['output']
         except Exception as e:
@@ -138,8 +149,13 @@ class WebSearchTool():
             print(response.text)
             return "Open url error: " + str(e)
 
-    def search_open_url(self, query: str, topk: int = 10, content_length: int = 10000) -> str:
-        """Search the web for information, and also open all the urls. Following search-open-url's format."""
+    def open_url(self, url, query: str = "", content_length: int = 10000, scoring_func: str = "rouge", chunking_func: str = "newline"):
+        """Open a url and optionally search for a specific query. Accepts a single url string or a list of urls."""
+        urls = _ensure_list(url)
+        results = [self._open_url_single(u, query, content_length, scoring_func, chunking_func) for u in urls]
+        return results if len(results) > 1 else results[0]
+
+    def _search_open_url_single(self, query: str, topk: int = 10, content_length: int = 10000) -> str:
         if not query or not query.strip():
             return "Search error: Please provide a query to search for."
 
@@ -147,8 +163,13 @@ class WebSearchTool():
         response = self._post_with_retry("/search_open_url", payload)
         return response.json()['output']
 
-    def search_o1(self, query: str, topk: int = 10) -> str:
-        """Search the web for information. Following search-o1's format."""
+    def search_open_url(self, query, topk: int = 10, content_length: int = 10000):
+        """Search the web for information, and also open all the urls. Accepts a single query or a list of queries."""
+        queries = _ensure_list(query)
+        results = [self._search_open_url_single(q, topk, content_length) for q in queries]
+        return results if len(results) > 1 else results[0]
+
+    def _search_o1_single(self, query: str, topk: int = 10):
         if not query or not query.strip():
             return json.dumps({"output": "Search error: Please provide a query to search for.", "search_results": []})
 
@@ -162,3 +183,12 @@ class WebSearchTool():
             print(response)
             print(response.text)
             return {"output": "Search error: " + str(e), "search_results": []}
+
+    def search_o1(self, query, topk: int = 10):
+        """Search the web for information. Accepts a single query or a list of queries."""
+        queries = _ensure_list(query)
+        results = [self._search_o1_single(q, topk) for q in queries]
+        # flatten the search results
+        res = [r for result in results for r in result['search_results']]
+        return {"output": "\n\n".join([result['output'] for result in results]), "search_results": res}
+        # return results if len(results) > 1 else results[0]

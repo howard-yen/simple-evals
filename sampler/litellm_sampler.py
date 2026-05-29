@@ -103,7 +103,7 @@ class LiteLLMSampler(SamplerBase):
                         metadata["extra_convo"] = extra_convo
                     else:
                         raise ValueError("Litellm API returned empty response; retrying")
-                
+
                 return SamplerResponse(
                     response_text=content,
                     response_metadata=metadata,
@@ -119,6 +119,13 @@ class LiteLLMSampler(SamplerBase):
                 )
 
             except Exception as e:
+                if trial >= 5:
+                    return SamplerResponse(
+                        response_text="",
+                        response_metadata={"usage": None, "error": str(e)},
+                        actual_queried_message_list=message_list,
+                    )
+
                 exception_backoff = 2**trial  # expontial back off
                 exception_backoff = min(exception_backoff, 128)
                 print(f"Rate limit exception so wait and retry {trial} after {exception_backoff} sec: {e}")
